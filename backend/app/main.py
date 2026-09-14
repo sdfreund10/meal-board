@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import settings
-from app.routers import auth, recipes, tags
+from app.routers import auth, recipes, tags, weeks
 
 app = FastAPI(title="Mealboard API", version="0.1.0")
 
@@ -30,6 +30,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix=settings.api_prefix)
 app.include_router(recipes.router, prefix=settings.api_prefix)
 app.include_router(tags.router, prefix=settings.api_prefix)
+app.include_router(weeks.router, prefix=settings.api_prefix)
 
 
 @app.get("/health")
