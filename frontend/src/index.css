@@ -33,3 +33,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+dialog::backdrop {
+  background: color-mix(in srgb, var(--color-ink) 35%, transparent);
+}
