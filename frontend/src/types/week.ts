@@ -16,3 +16,9 @@ export interface WeekBoard {
 export interface DinnerSlotAdd {
   recipe_id: number
 }
+
+/** Aggregated ingredient needed for the week's planned recipes. */
+export interface GroceryItem {
+  name: string
+  quantities: string[]
+}

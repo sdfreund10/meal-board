@@ -146,6 +146,31 @@ describe('api client', () => {
     )
   })
 
+  it('loads week grocery inventory with credentials', async () => {
+    const items = [
+      { name: 'Onion', quantities: ['2', '1'] },
+      { name: 'Salt', quantities: [] }
+    ]
+    const fetchMock = vi.fn().mockResolvedValue(mockJsonResponse(items))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(api.getWeekGrocery('2026-09-14')).resolves.toEqual(items)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/weeks/2026-09-14/grocery',
+      expect.objectContaining({ credentials: 'include' })
+    )
+
+    const controller = new AbortController()
+    await api.getWeekGrocery('2026-09-14', controller.signal)
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      '/api/weeks/2026-09-14/grocery',
+      expect.objectContaining({
+        credentials: 'include',
+        signal: controller.signal
+      })
+    )
+  })
+
   it('adds a recipe to a day via POST', async () => {
     const board = {
       week_start: '2026-09-14',

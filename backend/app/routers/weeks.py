@@ -3,14 +3,13 @@ from __future__ import annotations
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
 from app.deps import require_session
 from app.models import DinnerSlot, Recipe
-from app.schemas import DinnerSlotAdd, DinnerSlotRead, WeekBoardRead
+from app.schemas import DinnerSlotAdd, DinnerSlotRead, GroceryItemRead, WeekBoardRead
 
 router = APIRouter(
     prefix="/weeks",
@@ -48,7 +47,7 @@ def _build_week_board(db: Session, week_start: date) -> WeekBoardRead:
         db.query(DinnerSlot)
         .options(*_recipe_load_options())
         .filter(DinnerSlot.week_start == week_start)
-        .order_by(DinnerSlot.day_of_week.asc())
+        .order_by(DinnerSlot.day_of_week.asc(), DinnerSlot.id.asc())
         .all()
     )
     by_day: dict[int, list[Recipe]] = {day: [] for day in range(7)}
@@ -60,6 +59,56 @@ def _build_week_board(db: Session, week_start: date) -> WeekBoardRead:
     ]
     return WeekBoardRead(week_start=week_start, days=days)
 
+
+def _build_grocery(db: Session, week_start: date) -> list[GroceryItemRead]:
+    """Aggregate ingredients needed for all slotted recipes that week.
+
+    Dedupes by strip().lower() name, keeps first-seen display casing, and
+    lists quantities side-by-side (does not sum or parse units). Blank
+    quantities are omitted from the list but the ingredient still appears.
+    Order follows day → slot position → ingredient position.
+    """
+    slots = (
+        db.query(DinnerSlot)
+        .options(selectinload(DinnerSlot.recipe).selectinload(Recipe.ingredients))
+        .filter(DinnerSlot.week_start == week_start)
+        .order_by(DinnerSlot.day_of_week.asc(), DinnerSlot.id.asc())
+        .all()
+    )
+
+    # key -> (display_name, quantities)
+    aggregated: dict[str, tuple[str, list[str]]] = {}
+    order: list[str] = []
+
+    for slot in slots:
+        ingredients = sorted(
+            slot.recipe.ingredients,
+            key=lambda ing: (ing.position, ing.id),
+        )
+        for ingredient in ingredients:
+            key = ingredient.name.strip().lower()
+            if not key:
+                continue
+            quantity = ingredient.quantity.strip()
+            if key not in aggregated:
+                aggregated[key] = (ingredient.name.strip(), [])
+                order.append(key)
+            if quantity:
+                display_name, quantities = aggregated[key]
+                aggregated[key] = (display_name, [*quantities, quantity])
+
+    return [
+        GroceryItemRead(name=aggregated[key][0], quantities=aggregated[key][1])
+        for key in order
+    ]
+
+
+@router.get("/{week_start}/grocery", response_model=list[GroceryItemRead])
+def get_week_grocery(
+    week_start: date, db: Session = Depends(get_db)
+) -> list[GroceryItemRead]:
+    _require_monday(week_start)
+    return _build_grocery(db, week_start)
 
 
 @router.get("/{week_start}", response_model=WeekBoardRead)

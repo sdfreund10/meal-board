@@ -1,7 +1,7 @@
 import type { AuthLogin, AuthStatus } from '../types/auth'
 import type { Recipe, RecipeCreate, RecipeUpdate } from '../types/recipe'
 import type { Tag, TagCreate, TagUpdate } from '../types/tag'
-import type { DinnerSlotAdd, WeekBoard } from '../types/week'
+import type { DinnerSlotAdd, GroceryItem, WeekBoard } from '../types/week'
 
 const DEFAULT_TIMEOUT_MS = 8_000
 
@@ -96,6 +96,9 @@ export const api = {
 
   getWeek: async (weekStart: string, signal?: AbortSignal) =>
     await request<WeekBoard>(`/api/weeks/${weekStart}`, { signal }),
+
+  getWeekGrocery: async (weekStart: string, signal?: AbortSignal) =>
+    await request<GroceryItem[]>(`/api/weeks/${weekStart}/grocery`, { signal }),
 
   addDayRecipe: async (
     weekStart: string,
