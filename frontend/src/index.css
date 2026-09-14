@@ -1,7 +1,35 @@
 @import 'tailwindcss';
 
+:root {
+  /* Surfaces */
+  --color-surface: #f5f7f3;
+  --color-surface-raised: #ffffff;
+  /* Sage fills */
+  --color-sage-muted: #d8e3d4;
+  --color-sage: #a9bda3;
+  --color-sage-mid: #6a8f6e;
+  --color-sage-deep: #3a5640;
+  /* Text */
+  --color-ink: #243028;
+  --color-ink-muted: #5a6b5e;
+  --color-on-sage: #f3f7f2;
+  /* Borders & status */
+  --color-border: #c9d4c5;
+  --color-danger: #a84444;
+  --color-danger-bg: #f7eaea;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
-  @apply bg-slate-950 text-slate-100 antialiased;
+  background:
+    radial-gradient(
+      1200px 600px at 10% -10%,
+      color-mix(in srgb, var(--color-sage-muted) 55%, transparent),
+      transparent 60%
+    ),
+    var(--color-surface);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
