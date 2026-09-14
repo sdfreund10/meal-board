@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
 import type { Recipe } from '../types/recipe'
@@ -31,6 +32,10 @@ const recipe: Recipe = {
   updated_at: '2026-01-01T00:00:00Z'
 }
 
+function renderPage (ui: React.ReactElement = <RecipesPage />) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>)
+}
+
 describe('RecipesPage', () => {
   beforeEach(() => {
     vi.spyOn(api, 'listRecipes').mockResolvedValue([recipe])
@@ -39,10 +44,11 @@ describe('RecipesPage', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    sessionStorage.clear()
   })
 
   it('loads and lists recipes', async () => {
-    render(<RecipesPage />)
+    renderPage()
 
     expect(screen.getByText('Loading recipes…')).toBeInTheDocument()
     expect(await screen.findByText('Tacos')).toBeInTheDocument()
@@ -51,7 +57,7 @@ describe('RecipesPage', () => {
 
   it('shows empty state when there are no recipes', async () => {
     vi.spyOn(api, 'listRecipes').mockResolvedValue([])
-    render(<RecipesPage />)
+    renderPage()
 
     expect(await screen.findByText('No recipes yet')).toBeInTheDocument()
     expect(
@@ -61,7 +67,7 @@ describe('RecipesPage', () => {
 
   it('expands a recipe to show details and actions', async () => {
     const user = userEvent.setup()
-    render(<RecipesPage />)
+    renderPage()
 
     await screen.findByRole('heading', { name: 'Recipes' })
     await screen.findByText('Tacos')
@@ -73,7 +79,7 @@ describe('RecipesPage', () => {
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: /Slot into night/i })
-    ).toBeDisabled()
+    ).toBeEnabled()
   })
 
   it('rates a recipe via PATCH', async () => {
@@ -81,7 +87,7 @@ describe('RecipesPage', () => {
     const updated: Recipe = { ...recipe, rating: 'up' }
     const updateSpy = vi.spyOn(api, 'updateRecipe').mockResolvedValue(updated)
 
-    render(<RecipesPage />)
+    renderPage()
     await screen.findByText('Tacos')
 
     await user.click(screen.getByRole('button', { name: 'Thumbs up' }))
@@ -99,7 +105,7 @@ describe('RecipesPage', () => {
     const user = userEvent.setup()
     vi.spyOn(api, 'listRecipes').mockResolvedValue([])
 
-    render(
+    renderPage(
       <StrictMode>
         <RecipesPage />
       </StrictMode>
@@ -123,7 +129,7 @@ describe('RecipesPage', () => {
   it('keeps the new-recipe dialog open after clicking New recipe', async () => {
     const user = userEvent.setup()
     vi.spyOn(api, 'listRecipes').mockResolvedValue([])
-    render(<RecipesPage />)
+    renderPage()
 
     await screen.findByText('No recipes yet')
     await user.click(screen.getAllByRole('button', { name: 'New recipe' })[0])
@@ -155,7 +161,7 @@ describe('RecipesPage', () => {
     }
     const createSpy = vi.spyOn(api, 'createRecipe').mockResolvedValue(created)
 
-    render(<RecipesPage />)
+    renderPage()
     await screen.findByText('No recipes yet')
 
     await user.click(screen.getAllByRole('button', { name: 'New recipe' })[0])
@@ -193,7 +199,7 @@ describe('RecipesPage', () => {
     }
     const createSpy = vi.spyOn(api, 'createRecipe').mockResolvedValue(created)
 
-    render(<RecipesPage />)
+    renderPage()
     await screen.findByText('No recipes yet')
 
     await user.click(screen.getAllByRole('button', { name: 'New recipe' })[0])
@@ -223,7 +229,7 @@ describe('RecipesPage', () => {
 
   it('prefills edit form with newline-joined ingredients and steps', async () => {
     const user = userEvent.setup()
-    render(<RecipesPage />)
+    renderPage()
 
     await screen.findByText('Tacos')
     await user.click(screen.getByRole('button', { name: 'Expand recipe' }))
@@ -243,7 +249,7 @@ describe('RecipesPage', () => {
     const deleteSpy = vi.spyOn(api, 'deleteRecipe').mockResolvedValue(undefined)
     vi.spyOn(window, 'confirm').mockReturnValue(true)
 
-    render(<RecipesPage />)
+    renderPage()
     await screen.findByText('Tacos')
     await user.click(screen.getByRole('button', { name: 'Expand recipe' }))
     await user.click(screen.getByRole('button', { name: 'Delete' }))
@@ -259,7 +265,7 @@ describe('RecipesPage', () => {
     const newTag: Tag = { id: 3, name: 'spicy', board_visible: true }
     const createSpy = vi.spyOn(api, 'createTag').mockResolvedValue(newTag)
 
-    render(<RecipesPage />)
+    renderPage()
     await screen.findByText('Tacos')
 
     await user.click(screen.getByRole('button', { name: /Manage/i }))
@@ -280,7 +286,7 @@ describe('RecipesPage', () => {
     vi.spyOn(api, 'listRecipes').mockRejectedValueOnce(new Error('Network down'))
     vi.spyOn(api, 'listTags').mockResolvedValue(tags)
 
-    render(<RecipesPage />)
+    renderPage()
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Network down')
 
@@ -288,5 +294,32 @@ describe('RecipesPage', () => {
     await user.click(screen.getByRole('button', { name: 'Try again' }))
 
     expect(await screen.findByText('Tacos')).toBeInTheDocument()
+  })
+
+  it('opens slot-into-night day picker and adds', async () => {
+    const user = userEvent.setup()
+    sessionStorage.setItem('mealboard.boardWeek', '2026-09-07')
+    const addSpy = vi.spyOn(api, 'addDayRecipe').mockResolvedValue({
+      week_start: '2026-09-07',
+      days: []
+    })
+
+    renderPage()
+    await screen.findByText('Tacos')
+    await user.click(screen.getByRole('button', { name: 'Expand recipe' }))
+    await user.click(screen.getByRole('button', { name: /Slot into night/i }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(
+      within(dialog).getByRole('heading', { name: 'Slot into night' })
+    ).toBeInTheDocument()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Tuesday' }))
+
+    await waitFor(() => {
+      expect(addSpy).toHaveBeenCalledWith('2026-09-07', 1, {
+        recipe_id: 10
+      })
+    })
   })
 })

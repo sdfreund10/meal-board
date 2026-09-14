@@ -1,6 +1,7 @@
 import type { AuthLogin, AuthStatus } from '../types/auth'
 import type { Recipe, RecipeCreate, RecipeUpdate } from '../types/recipe'
 import type { Tag, TagCreate, TagUpdate } from '../types/tag'
+import type { DinnerSlotAdd, WeekBoard } from '../types/week'
 
 const DEFAULT_TIMEOUT_MS = 8_000
 
@@ -91,5 +92,36 @@ export const api = {
     }),
 
   deleteTag: async (id: number) =>
-    await request<void>(`/api/tags/${id}`, { method: 'DELETE' })
+    await request<void>(`/api/tags/${id}`, { method: 'DELETE' }),
+
+  getWeek: async (weekStart: string, signal?: AbortSignal) =>
+    await request<WeekBoard>(`/api/weeks/${weekStart}`, { signal }),
+
+  addDayRecipe: async (
+    weekStart: string,
+    dayOfWeek: number,
+    payload: DinnerSlotAdd
+  ) =>
+    await request<WeekBoard>(
+      `/api/weeks/${weekStart}/days/${dayOfWeek}/recipes`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      }
+    ),
+
+  removeDayRecipe: async (
+    weekStart: string,
+    dayOfWeek: number,
+    recipeId: number
+  ) =>
+    await request<WeekBoard>(
+      `/api/weeks/${weekStart}/days/${dayOfWeek}/recipes/${recipeId}`,
+      { method: 'DELETE' }
+    ),
+
+  clearDay: async (weekStart: string, dayOfWeek: number) =>
+    await request<WeekBoard>(`/api/weeks/${weekStart}/days/${dayOfWeek}`, {
+      method: 'DELETE'
+    })
 }

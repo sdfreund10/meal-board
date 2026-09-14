@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
+import SlotDayPickerDialog from '../components/board/SlotDayPickerDialog'
 import RecipeCard from '../components/recipes/RecipeCard'
 import RecipeForm from '../components/recipes/RecipeForm'
 import TagManager from '../components/recipes/TagManager'
+import { boardWeekOrCurrent } from '../lib/weekDate'
 import type { Recipe, RecipeCreate, RecipeRating } from '../types/recipe'
 import type { Tag } from '../types/tag'
+import type { DayOfWeek } from '../types/week'
 
 type FormMode = { type: 'create' } | { type: 'edit', recipe: Recipe } | null
 
 function RecipesPage () {
+  const navigate = useNavigate()
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [tags, setTags] = useState<Tag[]>([])
   const [loading, setLoading] = useState(true)
@@ -24,6 +29,10 @@ function RecipesPage () {
   const [tagBusy, setTagBusy] = useState(false)
   const [tagError, setTagError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [slotRecipe, setSlotRecipe] = useState<Recipe | null>(null)
+  const [slotWeekStart, setSlotWeekStart] = useState(() => boardWeekOrCurrent())
+  const [slotSubmitting, setSlotSubmitting] = useState(false)
+  const [slotError, setSlotError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -200,6 +209,25 @@ function RecipesPage () {
     }
   }
 
+  async function handleSlotDay (dayOfWeek: DayOfWeek) {
+    if (slotRecipe == null || slotSubmitting) return
+    setSlotSubmitting(true)
+    setSlotError(null)
+    try {
+      await api.addDayRecipe(slotWeekStart, dayOfWeek, {
+        recipe_id: slotRecipe.id
+      })
+      setSlotRecipe(null)
+      void navigate(`/?week=${slotWeekStart}`)
+    } catch (err) {
+      setSlotError(
+        err instanceof Error ? err.message : 'Could not slot recipe'
+      )
+    } finally {
+      setSlotSubmitting(false)
+    }
+  }
+
   return (
     <section className='space-y-6'>
       <div className='flex flex-wrap items-end justify-between gap-3'>
@@ -296,6 +324,11 @@ function RecipesPage () {
                   setFormMode({ type: 'edit', recipe })
                 }}
                 onDelete={() => void handleDelete(recipe)}
+                onSlotIntoNight={() => {
+                  setSlotError(null)
+                  setSlotWeekStart(boardWeekOrCurrent())
+                  setSlotRecipe(recipe)
+                }}
               />
             </li>
           ))}
@@ -311,6 +344,21 @@ function RecipesPage () {
           error={formError}
           onSubmit={(payload) => void handleFormSubmit(payload)}
           onCancel={() => setFormMode(null)}
+        />
+      )}
+
+      {slotRecipe != null && (
+        <SlotDayPickerDialog
+          recipeName={slotRecipe.name}
+          weekStart={slotWeekStart}
+          submitting={slotSubmitting}
+          error={slotError}
+          onSelect={(day) => void handleSlotDay(day)}
+          onCancel={() => {
+            if (slotSubmitting) return
+            setSlotRecipe(null)
+            setSlotError(null)
+          }}
         />
       )}
     </section>

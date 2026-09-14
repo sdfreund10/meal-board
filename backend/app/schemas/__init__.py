@@ -106,17 +106,17 @@ class RecipeRead(RecipeBase):
     updated_at: datetime
 
 
-class DinnerSlotAssign(BaseModel):
-    """Set recipe_id to assign; null clears the night by deleting the slot row."""
+class DinnerSlotAdd(BaseModel):
+    """Append a recipe to a day; same recipe twice on one day is rejected."""
 
-    recipe_id: Optional[int] = None
+    recipe_id: int
 
 
 class DinnerSlotRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     day_of_week: int = Field(ge=0, le=6)
-    recipe: Optional[RecipeRead] = None
+    recipes: List[RecipeRead] = Field(default_factory=list)
 
 
 class WeekBoardRead(BaseModel):

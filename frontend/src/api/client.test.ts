@@ -117,4 +117,100 @@ describe('api client', () => {
       })
     )
   })
+
+  it('loads a week board with credentials', async () => {
+    const board = {
+      week_start: '2026-09-14',
+      days: Array.from({ length: 7 }, (_, dayOfWeek) => ({
+        day_of_week: dayOfWeek,
+        recipes: []
+      }))
+    }
+    const fetchMock = vi.fn().mockResolvedValue(mockJsonResponse(board))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(api.getWeek('2026-09-14')).resolves.toEqual(board)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/weeks/2026-09-14',
+      expect.objectContaining({ credentials: 'include' })
+    )
+
+    const controller = new AbortController()
+    await api.getWeek('2026-09-14', controller.signal)
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      '/api/weeks/2026-09-14',
+      expect.objectContaining({
+        credentials: 'include',
+        signal: controller.signal
+      })
+    )
+  })
+
+  it('adds a recipe to a day via POST', async () => {
+    const board = {
+      week_start: '2026-09-14',
+      days: Array.from({ length: 7 }, (_, dayOfWeek) => ({
+        day_of_week: dayOfWeek,
+        recipes: dayOfWeek === 2 ? [{ id: 10, name: 'Pasta' }] : []
+      }))
+    }
+    const fetchMock = vi.fn().mockResolvedValue(mockJsonResponse(board))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(
+      api.addDayRecipe('2026-09-14', 2, { recipe_id: 10 })
+    ).resolves.toEqual(board)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/weeks/2026-09-14/days/2/recipes',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify({ recipe_id: 10 })
+      })
+    )
+  })
+
+  it('removes a recipe from a day via DELETE', async () => {
+    const board = {
+      week_start: '2026-09-14',
+      days: Array.from({ length: 7 }, (_, dayOfWeek) => ({
+        day_of_week: dayOfWeek,
+        recipes: []
+      }))
+    }
+    const fetchMock = vi.fn().mockResolvedValue(mockJsonResponse(board))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(
+      api.removeDayRecipe('2026-09-14', 2, 10)
+    ).resolves.toEqual(board)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/weeks/2026-09-14/days/2/recipes/10',
+      expect.objectContaining({
+        method: 'DELETE',
+        credentials: 'include'
+      })
+    )
+  })
+
+  it('clears a day via DELETE', async () => {
+    const board = {
+      week_start: '2026-09-14',
+      days: Array.from({ length: 7 }, (_, dayOfWeek) => ({
+        day_of_week: dayOfWeek,
+        recipes: []
+      }))
+    }
+    const fetchMock = vi.fn().mockResolvedValue(mockJsonResponse(board))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(api.clearDay('2026-09-14', 1)).resolves.toEqual(board)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/weeks/2026-09-14/days/1',
+      expect.objectContaining({
+        method: 'DELETE',
+        credentials: 'include'
+      })
+    )
+  })
 })

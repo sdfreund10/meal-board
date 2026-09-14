@@ -13,6 +13,7 @@ interface RecipeCardProps {
   onRate: (rating: RecipeRating) => void
   onEdit: () => void
   onDelete: () => void
+  onSlotIntoNight: () => void
 }
 
 function RecipeCard ({
@@ -23,7 +24,8 @@ function RecipeCard ({
   onToggle,
   onRate,
   onEdit,
-  onDelete
+  onDelete,
+  onSlotIntoNight
 }: RecipeCardProps) {
   const contentId = useId()
   const safeSource =
@@ -176,11 +178,10 @@ function RecipeCard ({
               </button>
               <button
                 type='button'
-                disabled
-                title='Weekly board comes next'
-                className='rounded-lg px-3 py-1.5 text-sm text-[var(--color-ink-muted)] opacity-60'
+                onClick={onSlotIntoNight}
+                className='rounded-lg px-3 py-1.5 text-sm font-medium text-[var(--color-sage-mid)] transition hover:bg-[var(--color-sage-muted)]/70'
               >
-                Slot into night… (soon)
+                Slot into night…
               </button>
             </div>
           </>

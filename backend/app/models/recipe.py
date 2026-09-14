@@ -130,7 +130,12 @@ class Tag(Base):
 class DinnerSlot(Base):
     __tablename__ = "dinner_slots"
     __table_args__ = (
-        UniqueConstraint("week_start", "day_of_week", name="uq_dinner_slots_week_day"),
+        UniqueConstraint(
+            "week_start",
+            "day_of_week",
+            "recipe_id",
+            name="uq_dinner_slots_week_day_recipe",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
