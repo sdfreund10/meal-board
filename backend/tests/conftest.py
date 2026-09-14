@@ -62,3 +62,10 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def auth_client(client: TestClient) -> TestClient:
+    response = client.post("/api/auth/login", json={"pin": "1234"})
+    assert response.status_code == 200
+    return client

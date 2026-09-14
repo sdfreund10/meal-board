@@ -29,5 +29,14 @@ class Settings(BaseSettings):
             raise ValueError("SESSION_SECRET must be at least 32 characters")
         return value
 
+    @field_validator("cors_origins")
+    @classmethod
+    def cors_origins_must_be_explicit(cls, value: List[str]) -> List[str]:
+        if "*" in value:
+            raise ValueError(
+                "CORS_ORIGINS cannot include '*' when credentials are enabled"
+            )
+        return value
+
 
 settings = Settings()

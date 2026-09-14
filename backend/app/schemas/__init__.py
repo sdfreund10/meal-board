@@ -3,7 +3,13 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import (
+    AnyHttpUrl,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+)
 
 Rating = Optional[Literal["up", "down"]]
 
@@ -21,7 +27,7 @@ class IngredientRead(IngredientIn):
 
 
 class StepIn(BaseModel):
-    text: str = Field(min_length=1)
+    text: str = Field(min_length=1, max_length=10000)
 
 
 class StepRead(StepIn):
@@ -57,6 +63,14 @@ class RecipeBase(BaseModel):
     leftovers: bool = False
     source_url: Optional[str] = Field(default=None, max_length=2048)
 
+    @field_validator("source_url")
+    @classmethod
+    def source_url_must_be_http(cls, value: Optional[str]) -> Optional[str]:
+        if value is None or value == "":
+            return None
+        # AnyHttpUrl rejects javascript:/data: and non-http schemes.
+        return str(AnyHttpUrl(value))
+
 
 class RecipeCreate(RecipeBase):
     ingredients: List[IngredientIn] = Field(default_factory=list)
@@ -72,6 +86,13 @@ class RecipeUpdate(BaseModel):
     ingredients: Optional[List[IngredientIn]] = None
     steps: Optional[List[StepIn]] = None
     tag_ids: Optional[List[int]] = None
+
+    @field_validator("source_url")
+    @classmethod
+    def source_url_must_be_http(cls, value: Optional[str]) -> Optional[str]:
+        if value is None or value == "":
+            return None
+        return str(AnyHttpUrl(value))
 
 
 class RecipeRead(RecipeBase):
@@ -104,7 +125,7 @@ class WeekBoardRead(BaseModel):
 
 
 class GroceryItemRead(BaseModel):
-    name: str
+    name: str = Field(min_length=1, max_length=255)
     quantities: List[str]
 
 
