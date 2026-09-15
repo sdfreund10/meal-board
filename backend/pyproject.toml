@@ -3,15 +3,19 @@ name = "mealboard-backend"
 version = "0.1.0"
 description = "Mealboard FastAPI backend"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = [
     "alembic==1.14.0",
+    "beautifulsoup4>=4.15.0",
     "fastapi==0.115.6",
     "itsdangerous==2.2.0",
+    "markdownify>=1.2.3",
+    "openrouter>=1.1.142",
     "psycopg2-binary==2.9.10",
     "pydantic-settings==2.7.0",
     "python-dotenv==1.0.1",
-    "sqlalchemy==2.0.36",
+    "requests>=2.34.2",
+    "sqlalchemy==2.0.53",
     "uvicorn[standard]==0.34.0",
 ]
 
@@ -29,6 +33,7 @@ default-groups = ["dev"]
 line-length = 88
 target-version = "py39"
 src = ["app", "tests", "alembic"]
+exclude = ["alembic/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
