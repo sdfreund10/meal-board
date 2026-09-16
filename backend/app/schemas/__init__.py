@@ -78,6 +78,15 @@ class RecipeCreate(RecipeBase):
     tag_ids: List[int] = Field(default_factory=list)
 
 
+class RecipeImport(BaseModel):
+    url: str = Field(max_length=2048)
+
+    @field_validator("url")
+    @classmethod
+    def url_must_be_http(cls, value: str) -> str:
+        return str(AnyHttpUrl(value))
+
+
 class RecipeUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=255)
     rating: Rating = None

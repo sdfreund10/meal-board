@@ -11,3 +11,6 @@ venv/
 node_modules/
 frontend/dist/
 .DS_Store
+
+backend/evals/fixtures/*.html
+backend/evals/results/*.json

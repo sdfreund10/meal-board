@@ -68,7 +68,7 @@ def test_extract_recipe_calls_openrouter(
     mock_openrouter.assert_called_once_with(api_key="test-key")
     client.chat.send.assert_called_once()
     call_kwargs = client.chat.send.call_args.kwargs
-    assert call_kwargs["model"] == "openai/gpt-5.6-luna"
+    assert call_kwargs["model"] == "google/gemini-2.5-flash-lite"
     assert call_kwargs["stream"] is False
     assert call_kwargs["response_format"] == recipe_extract.RESPONSE_FORMAT
     assert result == SAMPLE_RECIPE

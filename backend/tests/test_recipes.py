@@ -1,9 +1,20 @@
+from unittest.mock import MagicMock, patch
+
+import requests
+from app.models import Recipe, RecipeIngredient, RecipeStep
 from fastapi.testclient import TestClient
 
 
 def test_recipes_require_auth(client: TestClient) -> None:
     assert client.get("/api/recipes").status_code == 401
     assert client.post("/api/recipes", json={"name": "Tacos"}).status_code == 401
+    assert (
+        client.post(
+            "/api/recipes/import",
+            json={"url": "https://example.com/tacos"},
+        ).status_code
+        == 401
+    )
 
 
 def test_tags_require_auth(client: TestClient) -> None:
@@ -39,9 +50,7 @@ def test_tag_crud(auth_client: TestClient) -> None:
 
 
 def test_tag_name_must_be_unique(auth_client: TestClient) -> None:
-    assert (
-        auth_client.post("/api/tags", json={"name": "spicy"}).status_code == 201
-    )
+    assert auth_client.post("/api/tags", json={"name": "spicy"}).status_code == 201
     conflict = auth_client.post("/api/tags", json={"name": "spicy"})
     assert conflict.status_code == 409
 
@@ -138,3 +147,78 @@ def test_recipe_rejects_unsafe_source_url(auth_client: TestClient) -> None:
         json={"name": "Bad", "source_url": "javascript:alert(1)"},
     )
     assert response.status_code == 422
+
+
+def test_recipe_import_rejects_unsafe_url(auth_client: TestClient) -> None:
+    response = auth_client.post(
+        "/api/recipes/import",
+        json={"url": "javascript:alert(1)"},
+    )
+    assert response.status_code == 422
+
+
+@patch("app.routers.recipes.recipe_from_url")
+def test_recipe_import_from_url(
+    mock_recipe_from_url: MagicMock,
+    auth_client: TestClient,
+) -> None:
+    mock_recipe_from_url.return_value = Recipe(
+        name="Tomato Pasta",
+        source_url="https://example.com/pasta",
+        ingredients=[
+            RecipeIngredient(name="pasta", quantity="12 oz", position=0),
+            RecipeIngredient(name="tomatoes", quantity="2", position=1),
+        ],
+        steps=[
+            RecipeStep(text="Boil the pasta", position=0),
+            RecipeStep(text="Sauce the tomatoes", position=1),
+        ],
+    )
+
+    response = auth_client.post(
+        "/api/recipes/import",
+        json={"url": "https://example.com/pasta"},
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["name"] == "Tomato Pasta"
+    assert body["source_url"] == "https://example.com/pasta"
+    assert len(body["ingredients"]) == 2
+    assert body["ingredients"][0]["name"] == "pasta"
+    assert body["ingredients"][0]["quantity"] == "12 oz"
+    assert len(body["steps"]) == 2
+    assert body["steps"][1]["text"] == "Sauce the tomatoes"
+    mock_recipe_from_url.assert_called_once_with("https://example.com/pasta")
+
+
+@patch("app.routers.recipes.recipe_from_url")
+def test_recipe_import_fetch_failure(
+    mock_recipe_from_url: MagicMock,
+    auth_client: TestClient,
+) -> None:
+    mock_recipe_from_url.side_effect = requests.HTTPError("404")
+
+    response = auth_client.post(
+        "/api/recipes/import",
+        json={"url": "https://example.com/missing"},
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == "Failed to fetch recipe URL"
+
+
+@patch("app.routers.recipes.recipe_from_url")
+def test_recipe_import_extract_failure(
+    mock_recipe_from_url: MagicMock,
+    auth_client: TestClient,
+) -> None:
+    mock_recipe_from_url.side_effect = ValueError("bad llm payload")
+
+    response = auth_client.post(
+        "/api/recipes/import",
+        json={"url": "https://example.com/not-a-recipe"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Could not extract recipe from URL"

@@ -1,0 +1,68 @@
+{
+    "artisan-bread": {
+        "ingredient_count": 5,
+        "step_count": 17,
+        "important_ingredients": [
+            {"name": "yeast", "amount": "7 g"},
+            {"name": "warm water", "amount": "300 ml"},
+            {"name": "flour", "amount": "450 g"},
+            {"name": "salt", "amount": "8.5 g"}
+        ],
+        "important_steps": [
+            "Add the yeast, sugar, and warm water",
+            "Add flour",
+            "Knead",
+            "preheat oven",
+            "450F",
+            "prove for 30 minutes",
+            "Bake for 30 minutes",
+            "cool"
+        ]
+    },
+    "tuscan-chicken": {
+        "ingredient_count": 12,
+        "step_count": 4,
+        "important_ingredients": [
+            {"name": "chicken", "amount": "1.5 lb"},
+            {"name": "butter ", "amount": "3 tbsp"},
+            {"name": "cherry tomato", "amount": "1 1/2 cups"},
+            {"name": "spinach", "amount": "3 cup"},
+            {"name": "heavy cream", "amount": "1/2 cup"},
+            {"name": "parmesan", "amount": "1/2 oz"}
+        ],
+        "important_steps": [
+            "Heat oil",
+            "Add tomatoes",
+            "burst",
+            "add spinach",
+            "wilt",
+            "cream",
+            "reduce"
+        ]
+    },
+    "potato-soup": {
+        "ingredient_count": 14,
+        "step_count": 11,
+        "important_ingredients": [
+            {"name": "bacon", "amount": "6 strips"},
+            {"name": "onion", "amount": "1"},
+            {"name": "garlic clove", "amount": "3"},
+            {"name": "potato", "amount": "2.5 lbs"},
+            {"name": "broth", "amount": "4 cup"},
+            {"name": "cream", "amount": "2/3 cup"}
+        ],
+        "important_steps": [
+            "bacon",
+            "remove bacon",
+            "onion",
+            "add garlic",
+            "potato",
+            "broth",
+            "cream",
+            "boil",
+            "puree",
+            "simmer"
+
+        ]
+    }
+}

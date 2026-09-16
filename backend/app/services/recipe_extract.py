@@ -77,15 +77,14 @@ RESPONSE_FORMAT = {
     }
 }
 
-def extract_recipe(url: str) -> dict:
-    html = _fetch_html(url)
-    markdown = _parse_html(html)
-
+# google/gemini-2.5-flash-lite - from evals, this is the best and fastest model
+#   Last evaluated 2026-09-15
+def _llm_extract(markdown: str, model="google/gemini-2.5-flash-lite") -> dict:
     with OpenRouter(
         api_key=os.getenv("OPENROUTER_API_KEY", ""),
     ) as open_router:
         res = open_router.chat.send(
-            model="openai/gpt-5.6-luna",
+            model=model,
             messages=[
                 {"content": SYSTEM_PROMPT, "role": "system"},
                 {"content": markdown, "role": "user"}
@@ -93,7 +92,13 @@ def extract_recipe(url: str) -> dict:
             stream=False,
             response_format=RESPONSE_FORMAT
         )
-        return json.loads(res.choices[0].message.content)
+        return res
+
+def extract_recipe(url: str) -> dict:
+    html = _fetch_html(url)
+    markdown = _parse_html(html)
+    llm_result = _llm_extract(markdown)
+    return json.loads(llm_result.choices[0].message.content)
 
 def recipe_from_url(url: str) -> Recipe:
     """

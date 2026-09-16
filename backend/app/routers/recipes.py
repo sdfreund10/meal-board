@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Response, status
+import json
+
+import requests
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import require_session
 from app.models import Recipe
-from app.schemas import RecipeCreate, RecipeRead, RecipeUpdate
+from app.schemas import RecipeCreate, RecipeImport, RecipeRead, RecipeUpdate
+from app.services.recipe_extract import recipe_from_url
 from app.services.recipes import (
     get_recipe_or_404,
     list_recipes_query,
@@ -38,6 +42,30 @@ def create_recipe(payload: RecipeCreate, db: Session = Depends(get_db)) -> Recip
     replace_ingredients(recipe, payload.ingredients)
     replace_steps(recipe, payload.steps)
     recipe.tags = resolve_tags(db, payload.tag_ids)
+    db.add(recipe)
+    db.commit()
+    return get_recipe_or_404(db, recipe.id)
+
+
+@router.post(
+    "/import",
+    response_model=RecipeRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def import_recipe(payload: RecipeImport, db: Session = Depends(get_db)) -> Recipe:
+    try:
+        recipe = recipe_from_url(payload.url)
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to fetch recipe URL",
+        ) from exc
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Could not extract recipe from URL",
+        ) from exc
+
     db.add(recipe)
     db.commit()
     return get_recipe_or_404(db, recipe.id)
