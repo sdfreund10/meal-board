@@ -12,7 +12,8 @@ def _fuzzy_match_ingredients(extracted: dict, expected: dict) -> str:
             if expected_ingredient["name"].lower() in ingredient["name"].lower():
                 # Could be brittle to spaces in amount - 3g vs 3 g
                 # Could also be brittle to abreviations in amount - tablespoon vs tbsp
-                matched_amount = expected_ingredient["amount"].lower() in ingredient["amount"].lower()
+                matched_amount = expected_ingredient["amount"].lower() in \
+                    ingredient["amount"].lower()
                 match_data.append({
                     "ingredient": expected_ingredient["name"],
                     "matched": True,
@@ -53,6 +54,7 @@ def _fuzzy_match_steps(extracted: dict, expected: dict) -> str:
     return match_data
 
 # TODO: Check name
+# TODO: There is probably a Scorer class hiding here. Refactor later.
 def score_recipe(extracted: dict, expected: dict) -> dict:
     ingredient_matches = _fuzzy_match_ingredients(extracted, expected)
     step_matches = _fuzzy_match_steps(extracted, expected)
@@ -64,10 +66,16 @@ def score_recipe(extracted: dict, expected: dict) -> dict:
         "step_count_off": step_count_difference,
         "step_matches": step_matches
     }
-    matched_ingredient_count = sum(1 for match in ingredient_matches if match["matched"])
-    ingredient_matched_percent = abs(matched_ingredient_count - len(ingredient_matches)) / len(ingredient_matches)
+    matched_ingredient_count = sum(
+        1 for match in ingredient_matches if match["matched"]
+    )
+    ingredient_matched_percent = abs(
+        matched_ingredient_count - len(ingredient_matches)
+    ) / len(ingredient_matches)
     matched_step_count = sum(1 for match in step_matches if match["matched"])
-    step_matched_percent = abs(matched_step_count - len(step_matches)) / len(step_matches)
+    step_matched_percent = abs(
+        matched_step_count - len(step_matches)
+    ) / len(step_matches)
     # We want to ensure ingredients match as close as possible
     # Steps may be condensed, expended, or reworded so don't penalize as hard
     score = 100 + \
@@ -80,51 +88,3 @@ def score_recipe(extracted: dict, expected: dict) -> dict:
         "score": score,
         "details": details
     }
-
-#     {
-#       "case": "artisan-bread",
-#       "latency_ms": 7417.5,
-#       "predicted": {
-#         "name": "Artisan Bread",
-#         "ingredients": [
-#           {
-#             "name": "instant yeast",
-#             "amount": "7 g (2 tsp)"
-#           },
-#           {
-#             "name": "sugar",
-#             "amount": "5 g (1 tsp)"
-#           },
-#           {
-#             "name": "warm water",
-#             "amount": "300 ml (1 1/4 cups)"
-#           },
-#           {
-#             "name": "plain all-purpose flour",
-#             "amount": "450 g (3 3/4 cups), plus 60 g (1/2 cup) for dusting and shaping"
-#           },
-#           {
-#             "name": "salt",
-#             "amount": "8.5 g (1 1/2 tsp)"
-#           },
-#           {
-#             "name": "olive or vegetable oil",
-#             "amount": "A little, for greasing"
-#           }
-#         ],
-#         "steps": [
-#           "Add the yeast, sugar, and warm water to a large bowl. Leave for 5 minutes, until the yeast begins to foam.",
-#           "Add the flour and salt. Mix until fully combined.",
-#           "Knead with a dough hook on medium speed for 10 minutes, or knead by hand on a lightly oiled work surface for 10 minutes. The dough will be sticky.",
-#           "Place the dough in a lightly oiled bowl. Cover and let it prove for 1 hour, or until doubled in size.",
-#           "Flour the work surface with about 30 g flour and turn out the dough. Sprinkle with another tablespoon of flour as needed.",
-#           "Shape the dough without knocking out the air: pull sections from the outside into the center, working all the way around until the dough holds its shape. Turn it over and round it gently.",
-#           "Place the dough seam-side down in a well-floured proving basket or bowl. Cover and prove for 30 minutes.",
-#           "Meanwhile, place a Dutch oven, approximately 25 cm (10 inches) in diameter, in the oven and preheat to 230\u00b0C/450\u00b0F fan.",
-#           "Place a sheet of parchment paper over the proving bowl and carefully turn the dough onto it so it is seam-side up.",
-#           "Carefully remove the hot Dutch oven and its lid. Use the parchment to lower the dough into the pot, then cover with the lid.",
-#           "Bake covered for 30 minutes. Remove the lid and bake for another 10\u201315 minutes, until golden brown.",
-#           "Transfer the bread to a cooling rack and allow it to cool completely before slicing."
-#         ]
-#       }
-#     }
