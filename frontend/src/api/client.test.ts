@@ -77,6 +77,28 @@ describe('api client', () => {
     )
   })
 
+  it('imports a recipe with a longer timeout', async () => {
+    const recipe = { id: 2, name: 'Imported pasta' }
+    const fetchMock = vi.fn().mockResolvedValue(mockJsonResponse(recipe, 201))
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout')
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(
+      api.importRecipe({ url: 'https://example.com/pasta' })
+    ).resolves.toEqual(recipe)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/recipes/import',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify({ url: 'https://example.com/pasta' }),
+        signal: expect.any(AbortSignal)
+      })
+    )
+    expect(timeoutSpy).toHaveBeenCalledWith(60_000)
+  })
+
   it('creates a tag', async () => {
     const tag = { id: 1, name: 'quick', board_visible: true }
     const fetchMock = vi.fn().mockResolvedValue(mockJsonResponse(tag, 201))

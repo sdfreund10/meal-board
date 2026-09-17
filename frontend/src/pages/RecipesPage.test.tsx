@@ -1,5 +1,11 @@
 import { StrictMode } from 'react'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -177,6 +183,89 @@ describe('RecipesPage', () => {
       )
     })
     expect(await screen.findByText('Soup')).toBeInTheDocument()
+  })
+
+  it('imports a recipe from a URL', async () => {
+    const user = userEvent.setup()
+    const imported: Recipe = {
+      ...recipe,
+      id: 99,
+      name: 'Imported pasta',
+      source_url: 'https://example.com/pasta'
+    }
+    const importSpy = vi.spyOn(api, 'importRecipe').mockResolvedValue(imported)
+
+    renderPage()
+    await screen.findByText('Tacos')
+
+    await user.click(screen.getByRole('button', { name: 'Import from URL' }))
+    const dialog = await screen.findByRole('dialog')
+    await user.type(
+      within(dialog).getByLabelText('Recipe URL'),
+      'https://example.com/pasta'
+    )
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Import recipe' })
+    )
+
+    await waitFor(() => {
+      expect(importSpy).toHaveBeenCalledWith(
+        { url: 'https://example.com/pasta' },
+        expect.any(AbortSignal)
+      )
+    })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(await screen.findByText('Imported pasta')).toBeInTheDocument()
+  })
+
+  it('keeps the import dialog open and shows API errors', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(api, 'importRecipe').mockRejectedValue(
+      new Error('Could not extract recipe from URL')
+    )
+
+    renderPage()
+    await screen.findByText('Tacos')
+
+    await user.click(screen.getByRole('button', { name: 'Import from URL' }))
+    const dialog = await screen.findByRole('dialog')
+    await user.type(
+      within(dialog).getByLabelText('Recipe URL'),
+      'https://example.com/not-a-recipe'
+    )
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Import recipe' })
+    )
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      'Could not extract recipe from URL'
+    )
+    expect(dialog).toBeInTheDocument()
+  })
+
+  it('validates the import URL and closes on dialog cancel', async () => {
+    const user = userEvent.setup()
+    const importSpy = vi.spyOn(api, 'importRecipe')
+
+    renderPage()
+    await screen.findByText('Tacos')
+
+    await user.click(screen.getByRole('button', { name: 'Import from URL' }))
+    const dialog = await screen.findByRole('dialog')
+    const input = within(dialog).getByLabelText('Recipe URL')
+    await user.type(input, 'ftp://example.com/recipe')
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Import recipe' })
+    )
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      'Recipe URL must start with https:// or http://'
+    )
+    expect(input).toHaveAttribute('aria-invalid', 'true')
+    expect(importSpy).not.toHaveBeenCalled()
+
+    fireEvent(dialog, new Event('cancel', { cancelable: true }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('parses newline ingredients and steps and strips list markers', async () => {

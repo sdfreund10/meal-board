@@ -3,6 +3,7 @@ Downloads latest html for list of set examples.
 """
 
 from pathlib import Path
+
 import requests
 
 URLS = {

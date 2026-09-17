@@ -1,9 +1,15 @@
 import type { AuthLogin, AuthStatus } from '../types/auth'
-import type { Recipe, RecipeCreate, RecipeUpdate } from '../types/recipe'
+import type {
+  Recipe,
+  RecipeCreate,
+  RecipeImport,
+  RecipeUpdate
+} from '../types/recipe'
 import type { Tag, TagCreate, TagUpdate } from '../types/tag'
 import type { DinnerSlotAdd, GroceryItem, WeekBoard } from '../types/week'
 
 const DEFAULT_TIMEOUT_MS = 8_000
+const RECIPE_IMPORT_TIMEOUT_MS = 60_000
 
 function parseErrorDetail (raw: string, status: number): string {
   if (!raw) return `Request failed (${status})`
@@ -63,6 +69,16 @@ export const api = {
     await request<Recipe>('/api/recipes', {
       method: 'POST',
       body: JSON.stringify(payload)
+    }),
+
+  importRecipe: async (
+    payload: RecipeImport,
+    signal = AbortSignal.timeout(RECIPE_IMPORT_TIMEOUT_MS)
+  ) =>
+    await request<Recipe>('/api/recipes/import', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      signal
     }),
 
   getRecipe: async (id: number) =>

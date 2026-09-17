@@ -45,6 +45,10 @@ export interface RecipeCreate {
   tag_ids?: number[]
 }
 
+export interface RecipeImport {
+  url: string
+}
+
 export interface RecipeUpdate {
   name?: string
   rating?: RecipeRating

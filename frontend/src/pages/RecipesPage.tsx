@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import SlotDayPickerDialog from '../components/board/SlotDayPickerDialog'
 import RecipeCard from '../components/recipes/RecipeCard'
 import RecipeForm from '../components/recipes/RecipeForm'
+import RecipeImportDialog from '../components/recipes/RecipeImportDialog'
 import TagManager from '../components/recipes/TagManager'
 import { boardWeekOrCurrent } from '../lib/weekDate'
 import type { Recipe, RecipeCreate, RecipeRating } from '../types/recipe'
@@ -26,6 +27,10 @@ function RecipesPage () {
   const [formMode, setFormMode] = useState<FormMode>(null)
   const [formSubmitting, setFormSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importSubmitting, setImportSubmitting] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+  const importControllerRef = useRef<AbortController | null>(null)
   const [tagBusy, setTagBusy] = useState(false)
   const [tagError, setTagError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -56,6 +61,10 @@ function RecipesPage () {
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  useEffect(() => {
+    return () => importControllerRef.current?.abort()
+  }, [])
 
   function toggleExpanded (id: number) {
     setExpandedIds((prev) => {
@@ -131,6 +140,28 @@ function RecipesPage () {
       )
     } finally {
       setFormSubmitting(false)
+    }
+  }
+
+  async function handleImport (url: string) {
+    const controller = new AbortController()
+    importControllerRef.current = controller
+    setImportSubmitting(true)
+    setImportError(null)
+    try {
+      const imported = await api.importRecipe({ url }, controller.signal)
+      upsertRecipe(imported)
+      setExpandedIds((prev) => new Set(prev).add(imported.id))
+      setImportOpen(false)
+    } catch (err) {
+      setImportError(
+        err instanceof Error ? err.message : 'Could not import recipe'
+      )
+    } finally {
+      if (importControllerRef.current === controller) {
+        importControllerRef.current = null
+      }
+      setImportSubmitting(false)
     }
   }
 
@@ -239,16 +270,28 @@ function RecipesPage () {
             Browse, rate, and edit meals for the household.
           </p>
         </div>
-        <button
-          type='button'
-          onClick={() => {
-            setFormError(null)
-            setFormMode({ type: 'create' })
-          }}
-          className='rounded-lg bg-[var(--color-sage-mid)] px-4 py-2 text-sm font-semibold text-[var(--color-on-sage)] transition hover:bg-[var(--color-sage-deep)]'
-        >
-          New recipe
-        </button>
+        <div className='flex flex-wrap gap-2'>
+          <button
+            type='button'
+            onClick={() => {
+              setImportError(null)
+              setImportOpen(true)
+            }}
+            className='rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)] transition hover:bg-[var(--color-sage-muted)]/50'
+          >
+            Import from URL
+          </button>
+          <button
+            type='button'
+            onClick={() => {
+              setFormError(null)
+              setFormMode({ type: 'create' })
+            }}
+            className='rounded-lg bg-[var(--color-sage-mid)] px-4 py-2 text-sm font-semibold text-[var(--color-on-sage)] transition hover:bg-[var(--color-sage-deep)]'
+          >
+            New recipe
+          </button>
+        </div>
       </div>
 
       <TagManager
@@ -344,6 +387,19 @@ function RecipesPage () {
           error={formError}
           onSubmit={(payload) => void handleFormSubmit(payload)}
           onCancel={() => setFormMode(null)}
+        />
+      )}
+
+      {importOpen && (
+        <RecipeImportDialog
+          submitting={importSubmitting}
+          error={importError}
+          onSubmit={(url) => void handleImport(url)}
+          onCancel={() => {
+            if (importSubmitting) return
+            setImportOpen(false)
+            setImportError(null)
+          }}
         />
       )}
 
