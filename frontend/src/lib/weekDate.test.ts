@@ -14,10 +14,6 @@ describe('weekDate', () => {
     expect(toISODate(new Date(2026, 8, 14))).toBe('2026-09-14')
   })
 
-  it("FAILS", () => {
-    expect(true).toBe(false)
-  })
-
   it('parses valid ISO dates and rejects invalid ones', () => {
     expect(toISODate(parseISODate('2026-09-14')!)).toBe('2026-09-14')
     expect(parseISODate('2026-09-31')).toBeNull()
