@@ -7,13 +7,12 @@ on:
     paths:
       - 'frontend/**'
 
-defaults:
-  run:
-    working-directory: ./frontend
-
 jobs:
   test-frontend:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js 26
@@ -30,6 +29,9 @@ jobs:
 
   lint-frontend:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js 26
