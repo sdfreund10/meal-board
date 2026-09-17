@@ -12,13 +12,7 @@ Household web app for **family dinner planning** and a shared **recipe catalog**
 
 ## Quick start
 
-### 1. Database
-
-```bash
-docker compose up -d
-```
-
-### 2. Backend
+### 1. Backend
 
 ```bash
 cd backend
@@ -72,32 +66,3 @@ npm run lint
 npm test
 npm run build
 ```
-
-## Project layout
-
-```
-backend/
-  app/           FastAPI app, models, schemas, routers
-  alembic/       Database migrations
-frontend/
-  src/           React UI + API client
-docker-compose.yml   PostgreSQL 16
-```
-
-## API overview
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Health check |
-| POST | `/api/auth/login` | PIN login (sets session cookie) |
-| POST | `/api/auth/logout` | Clear session |
-| GET | `/api/auth/me` | Session status |
-| * | `/api/recipes` | Recipe CRUD |
-| * | `/api/tags` | Tag CRUD |
-| GET | `/api/weeks/{monday}` | Week board (7 days, recipes[]) |
-| POST | `/api/weeks/{monday}/days/{0-6}/recipes` | Add recipe to a day |
-| DELETE | `/api/weeks/{monday}/days/{0-6}/recipes/{id}` | Remove one recipe |
-| DELETE | `/api/weeks/{monday}/days/{0-6}` | Clear a day |
-| GET | `/api/weeks/{monday}/grocery` | Aggregated grocery inventory |
-
-`{monday}` must be an ISO date for a Monday (`YYYY-MM-DD`). Authenticated routes require the session cookie.
