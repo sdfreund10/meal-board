@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 
+def test_fail() -> None:
+    assert False
 
 def test_me_unauthenticated(client: TestClient) -> None:
     response = client.get("/api/auth/me")

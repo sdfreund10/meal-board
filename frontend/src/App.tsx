@@ -7,6 +7,8 @@ import GroceryPage from './pages/GroceryPage'
 import RecipesPage from './pages/RecipesPage'
 import WeeklyBoardPage from './pages/WeeklyBoardPage'
 
+const testViolation = "This uses double quotes and a semicolon"
+
 type AuthState = 'loading' | 'unauthenticated' | 'authenticated'
 
 function App () {

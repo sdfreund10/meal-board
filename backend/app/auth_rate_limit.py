@@ -7,7 +7,6 @@ from typing import DefaultDict, Deque
 
 from fastapi import HTTPException, Request, status
 
-
 class LoginRateLimiter:
     """Simple in-memory per-IP login attempt limiter."""
 
