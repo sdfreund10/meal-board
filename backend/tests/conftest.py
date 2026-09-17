@@ -69,3 +69,12 @@ def auth_client(client: TestClient) -> TestClient:
     response = client.post("/api/auth/login", json={"pin": "1234"})
     assert response.status_code == 200
     return client
+
+@pytest.fixture
+def admin_client(client: TestClient) -> TestClient:
+    response = client.post("/api/auth/login", json={"pin": "1234"})
+    assert response.status_code == 200
+    response = client.post("/api/auth/elevate", json={"password": "admin"})
+    assert response.status_code == 200
+    assert response.json()["admin_access"] is True
+    return client

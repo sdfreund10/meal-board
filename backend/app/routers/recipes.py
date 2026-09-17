@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.deps import require_session
+from app.deps import require_admin, require_session
 from app.models import Recipe
 from app.schemas import RecipeCreate, RecipeImport, RecipeRead, RecipeUpdate
 from app.services.recipe_extract import recipe_from_url
@@ -19,19 +19,24 @@ from app.services.recipes import (
     resolve_tags,
 )
 
-router = APIRouter(
+public_router = APIRouter(
     prefix="/recipes",
     tags=["recipes"],
-    dependencies=[Depends(require_session)],
+)
+
+admin_router = APIRouter(
+    prefix="/recipes",
+    tags=["recipes"],
+    dependencies=[Depends(require_session), Depends(require_admin)],
 )
 
 
-@router.get("", response_model=list[RecipeRead])
+@public_router.get("", response_model=list[RecipeRead])
 def list_recipes(db: Session = Depends(get_db)) -> list[Recipe]:
     return list_recipes_query(db)
 
 
-@router.post("", response_model=RecipeRead, status_code=status.HTTP_201_CREATED)
+@admin_router.post("", response_model=RecipeRead, status_code=status.HTTP_201_CREATED)
 def create_recipe(payload: RecipeCreate, db: Session = Depends(get_db)) -> Recipe:
     recipe = Recipe(
         name=payload.name,
@@ -47,7 +52,7 @@ def create_recipe(payload: RecipeCreate, db: Session = Depends(get_db)) -> Recip
     return get_recipe_or_404(db, recipe.id)
 
 
-@router.post(
+@admin_router.post(
     "/import",
     response_model=RecipeRead,
     status_code=status.HTTP_201_CREATED,
@@ -71,12 +76,12 @@ def import_recipe(payload: RecipeImport, db: Session = Depends(get_db)) -> Recip
     return get_recipe_or_404(db, recipe.id)
 
 
-@router.get("/{recipe_id}", response_model=RecipeRead)
+@public_router.get("/{recipe_id}", response_model=RecipeRead)
 def get_recipe(recipe_id: int, db: Session = Depends(get_db)) -> Recipe:
     return get_recipe_or_404(db, recipe_id)
 
 
-@router.patch("/{recipe_id}", response_model=RecipeRead)
+@admin_router.patch("/{recipe_id}", response_model=RecipeRead)
 def update_recipe(
     recipe_id: int,
     payload: RecipeUpdate,
@@ -105,7 +110,7 @@ def update_recipe(
     return get_recipe_or_404(db, recipe.id)
 
 
-@router.delete(
+@admin_router.delete(
     "/{recipe_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     response_class=Response,

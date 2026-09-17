@@ -5,8 +5,8 @@ from app.models import Recipe, RecipeIngredient, RecipeStep
 from fastapi.testclient import TestClient
 
 
-def test_recipes_require_auth(client: TestClient) -> None:
-    assert client.get("/api/recipes").status_code == 401
+def test_recipes_are_public(client: TestClient) -> None:
+    assert client.get("/api/recipes").status_code == 200
     assert client.post("/api/recipes", json={"name": "Tacos"}).status_code == 401
     assert (
         client.post(
@@ -16,52 +16,24 @@ def test_recipes_require_auth(client: TestClient) -> None:
         == 401
     )
 
-
-def test_tags_require_auth(client: TestClient) -> None:
-    assert client.get("/api/tags").status_code == 401
-    assert client.post("/api/tags", json={"name": "quick"}).status_code == 401
-
-
-def test_tag_crud(auth_client: TestClient) -> None:
-    create = auth_client.post(
-        "/api/tags",
-        json={"name": "weeknight", "board_visible": True},
+def test_recipe_mutations_require_admin_access(auth_client: TestClient) -> None:
+    assert auth_client.post("/api/recipes", json={"name": "Tacos"}).status_code == 403
+    assert (
+        auth_client.post(
+            "/api/recipes/import",
+            json={"url": "https://example.com/tacos"},
+        ).status_code
+        == 403
     )
-    assert create.status_code == 201
-    tag = create.json()
-    assert tag["name"] == "weeknight"
-    assert tag["board_visible"] is True
-    tag_id = tag["id"]
-
-    listed = auth_client.get("/api/tags")
-    assert listed.status_code == 200
-    assert len(listed.json()) == 1
-
-    updated = auth_client.patch(
-        f"/api/tags/{tag_id}",
-        json={"board_visible": False},
-    )
-    assert updated.status_code == 200
-    assert updated.json()["board_visible"] is False
-
-    deleted = auth_client.delete(f"/api/tags/{tag_id}")
-    assert deleted.status_code == 204
-    assert auth_client.get("/api/tags").json() == []
 
 
-def test_tag_name_must_be_unique(auth_client: TestClient) -> None:
-    assert auth_client.post("/api/tags", json={"name": "spicy"}).status_code == 201
-    conflict = auth_client.post("/api/tags", json={"name": "spicy"})
-    assert conflict.status_code == 409
-
-
-def test_recipe_crud_with_ingredients_steps_tags(auth_client: TestClient) -> None:
-    tag = auth_client.post(
+def test_recipe_crud_with_ingredients_steps_tags(auth_client: TestClient, admin_client: TestClient) -> None:
+    tag = admin_client.post(
         "/api/tags",
         json={"name": "mexican", "board_visible": True},
     ).json()
 
-    create = auth_client.post(
+    create = admin_client.post(
         "/api/recipes",
         json={
             "name": "Tacos",
@@ -102,7 +74,7 @@ def test_recipe_crud_with_ingredients_steps_tags(auth_client: TestClient) -> Non
     assert fetched.status_code == 200
     assert fetched.json()["name"] == "Tacos"
 
-    patched = auth_client.patch(
+    patched = admin_client.patch(
         f"/api/recipes/{recipe_id}",
         json={
             "name": "Fish tacos",
@@ -121,36 +93,36 @@ def test_recipe_crud_with_ingredients_steps_tags(auth_client: TestClient) -> Non
     assert len(body["steps"]) == 2
     assert body["tags"] == []
 
-    deleted = auth_client.delete(f"/api/recipes/{recipe_id}")
+    deleted = admin_client.delete(f"/api/recipes/{recipe_id}")
     assert deleted.status_code == 204
     assert auth_client.get(f"/api/recipes/{recipe_id}").status_code == 404
 
 
-def test_recipe_rejects_unknown_tag(auth_client: TestClient) -> None:
-    response = auth_client.post(
+def test_recipe_rejects_unknown_tag(admin_client: TestClient) -> None:
+    response = admin_client.post(
         "/api/recipes",
         json={"name": "Soup", "tag_ids": [999]},
     )
     assert response.status_code == 400
 
 
-def test_recipe_not_found(auth_client: TestClient) -> None:
+def test_recipe_not_found(auth_client: TestClient, admin_client: TestClient) -> None:
     assert auth_client.get("/api/recipes/999").status_code == 404
-    patch = auth_client.patch("/api/recipes/999", json={"name": "Nope"})
+    patch = admin_client.patch("/api/recipes/999", json={"name": "Nope"})
     assert patch.status_code == 404
-    assert auth_client.delete("/api/recipes/999").status_code == 404
+    assert admin_client.delete("/api/recipes/999").status_code == 404
 
 
-def test_recipe_rejects_unsafe_source_url(auth_client: TestClient) -> None:
-    response = auth_client.post(
+def test_recipe_rejects_unsafe_source_url(admin_client: TestClient) -> None:
+    response = admin_client.post(
         "/api/recipes",
         json={"name": "Bad", "source_url": "javascript:alert(1)"},
     )
     assert response.status_code == 422
 
 
-def test_recipe_import_rejects_unsafe_url(auth_client: TestClient) -> None:
-    response = auth_client.post(
+def test_recipe_import_rejects_unsafe_url(admin_client: TestClient) -> None:
+    response = admin_client.post(
         "/api/recipes/import",
         json={"url": "javascript:alert(1)"},
     )
@@ -160,7 +132,7 @@ def test_recipe_import_rejects_unsafe_url(auth_client: TestClient) -> None:
 @patch("app.routers.recipes.recipe_from_url")
 def test_recipe_import_from_url(
     mock_recipe_from_url: MagicMock,
-    auth_client: TestClient,
+    admin_client: TestClient,
 ) -> None:
     mock_recipe_from_url.return_value = Recipe(
         name="Tomato Pasta",
@@ -175,7 +147,7 @@ def test_recipe_import_from_url(
         ],
     )
 
-    response = auth_client.post(
+    response = admin_client.post(
         "/api/recipes/import",
         json={"url": "https://example.com/pasta"},
     )
@@ -195,11 +167,11 @@ def test_recipe_import_from_url(
 @patch("app.routers.recipes.recipe_from_url")
 def test_recipe_import_fetch_failure(
     mock_recipe_from_url: MagicMock,
-    auth_client: TestClient,
+    admin_client: TestClient,
 ) -> None:
     mock_recipe_from_url.side_effect = requests.HTTPError("404")
 
-    response = auth_client.post(
+    response = admin_client.post(
         "/api/recipes/import",
         json={"url": "https://example.com/missing"},
     )
@@ -211,11 +183,11 @@ def test_recipe_import_fetch_failure(
 @patch("app.routers.recipes.recipe_from_url")
 def test_recipe_import_extract_failure(
     mock_recipe_from_url: MagicMock,
-    auth_client: TestClient,
+    admin_client: TestClient,
 ) -> None:
     mock_recipe_from_url.side_effect = ValueError("bad llm payload")
 
-    response = auth_client.post(
+    response = admin_client.post(
         "/api/recipes/import",
         json={"url": "https://example.com/not-a-recipe"},
     )

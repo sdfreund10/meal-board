@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.deps import require_session
+from app.deps import require_admin, require_session
 from app.models import Tag
 from app.schemas import TagCreate, TagRead, TagUpdate
 
@@ -15,6 +15,11 @@ router = APIRouter(
     dependencies=[Depends(require_session)],
 )
 
+admin_router = APIRouter(
+    prefix="/tags",
+    tags=["tags"],
+    dependencies=[Depends(require_session), Depends(require_admin)],
+)
 
 def _commit_tag_or_raise_conflict(db: Session) -> None:
     try:
@@ -39,7 +44,7 @@ def list_tags(db: Session = Depends(get_db)) -> list[Tag]:
     return db.query(Tag).order_by(Tag.name.asc()).all()
 
 
-@router.post("", response_model=TagRead, status_code=status.HTTP_201_CREATED)
+@admin_router.post("", response_model=TagRead, status_code=status.HTTP_201_CREATED)
 def create_tag(payload: TagCreate, db: Session = Depends(get_db)) -> Tag:
     tag = Tag(name=payload.name, board_visible=payload.board_visible)
     db.add(tag)
@@ -59,7 +64,7 @@ def get_tag(tag_id: int, db: Session = Depends(get_db)) -> Tag:
     return tag
 
 
-@router.patch("/{tag_id}", response_model=TagRead)
+@admin_router.patch("/{tag_id}", response_model=TagRead)
 def update_tag(
     tag_id: int,
     payload: TagUpdate,
@@ -79,7 +84,7 @@ def update_tag(
     return tag
 
 
-@router.delete(
+@admin_router.delete(
     "/{tag_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     response_class=Response,
