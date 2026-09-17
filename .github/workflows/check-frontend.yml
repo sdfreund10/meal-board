@@ -1,4 +1,4 @@
-name: Lint & Test Frontend
+name: Check Frontend
 
 on:
   pull_request:
