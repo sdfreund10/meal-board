@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://mealboard:mealboard@localhost:5432/mealboard_development"
 
     api_prefix: str = "/api"
-    cors_origins: List[str] = model_config.get("cors_origins", ["http://localhost:5173"])
+    cors_origins: List[str] = ["http://localhost:5173"]
 
     openrouter_api_key: str = ""
     household_pin: str = "1234"
