@@ -3,12 +3,19 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.config import settings
 from app.database import healthcheck
 from app.routers import auth, recipes, tags, weeks
 
-app = FastAPI(title="Mealboard API", version="0.1.0")
+app = FastAPI(
+    title="Mealboard API",
+    version="0.1.0",
+    docs_url=None if settings.is_production() else "/docs",
+    redoc_url=None if settings.is_production() else "/redoc",
+    openapi_url=None if settings.is_production() else "/openapi.json",
+)
 
 # Last added = outermost. CORS outside Session so credentials work cross-origin.
 app.add_middleware(
@@ -27,6 +34,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+if settings.is_production():
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=["api.meals.sfreund.tools"],
+    )
 
 app.include_router(auth.router, prefix=settings.api_prefix)
 app.include_router(recipes.public_router, prefix=settings.api_prefix)

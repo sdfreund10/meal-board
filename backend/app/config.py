@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     session_secret: str
     session_https_only: bool = False
 
+    def is_production(self) -> bool:
+        return self.app_env == AppEnv.production
+
     @field_validator("session_secret")
     @classmethod
     def session_secret_must_be_strong(cls, value: str) -> str:
