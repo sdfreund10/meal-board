@@ -21,3 +21,11 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+def healthcheck() -> dict:
+    try:
+        with get_db() as db:
+            db.execute("SELECT 1")
+            return {"status": "ok"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

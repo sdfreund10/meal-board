@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import settings
+from app.database import healthcheck
 from app.routers import auth, recipes, tags, weeks
 
 app = FastAPI(title="Mealboard API", version="0.1.0")
@@ -39,3 +40,7 @@ app.include_router(weeks.admin_router, prefix=settings.api_prefix)
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+@app.get("/db-health")
+def db_health() -> dict:
+    return healthcheck()
