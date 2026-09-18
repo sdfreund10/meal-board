@@ -141,6 +141,10 @@ class GroceryItemRead(BaseModel):
 class AuthLogin(BaseModel):
     pin: str = Field(min_length=4, max_length=64)
 
+class AdminLogin(BaseModel):
+    password: str = Field(min_length=4, max_length=64)
+
 
 class AuthStatus(BaseModel):
     authenticated: bool
+    admin_access: bool = False

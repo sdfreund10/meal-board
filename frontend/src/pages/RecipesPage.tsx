@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api } from '../api/client'
+import { ApiError, api } from '../api/client'
+import { useAuth } from '../auth/AuthContext'
 import SlotDayPickerDialog from '../components/board/SlotDayPickerDialog'
 import RecipeCard from '../components/recipes/RecipeCard'
 import RecipeForm from '../components/recipes/RecipeForm'
@@ -15,6 +16,7 @@ type FormMode = { type: 'create' } | { type: 'edit', recipe: Recipe } | null
 
 function RecipesPage () {
   const navigate = useNavigate()
+  const { authenticated, requireAdmin } = useAuth()
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [tags, setTags] = useState<Tag[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,7 +47,7 @@ function RecipesPage () {
     try {
       const [recipeList, tagList] = await Promise.all([
         api.listRecipes(),
-        api.listTags()
+        authenticated ? api.listTags() : Promise.resolve([])
       ])
       setRecipes(recipeList)
       setTags(tagList)
@@ -56,7 +58,7 @@ function RecipesPage () {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [authenticated])
 
   useEffect(() => {
     void refresh()
@@ -90,6 +92,7 @@ function RecipesPage () {
       const updated = await api.updateRecipe(recipe.id, { rating })
       upsertRecipe(updated)
     } catch (err) {
+      if (err instanceof ApiError && err.status === 403) throw err
       setActionError(
         err instanceof Error ? err.message : 'Could not update rating'
       )
@@ -99,9 +102,6 @@ function RecipesPage () {
   }
 
   async function handleDelete (recipe: Recipe) {
-    if (!window.confirm(`Delete “${recipe.name}”? This cannot be undone.`)) {
-      return
-    }
     setDeleteBusyId(recipe.id)
     setActionError(null)
     try {
@@ -113,12 +113,26 @@ function RecipesPage () {
         return next
       })
     } catch (err) {
+      if (err instanceof ApiError && err.status === 403) throw err
       setActionError(
         err instanceof Error ? err.message : 'Could not delete recipe'
       )
     } finally {
       setDeleteBusyId(null)
     }
+  }
+
+  function requestDelete (recipe: Recipe) {
+    let confirmed = false
+    requireAdmin(async () => {
+      if (!confirmed) {
+        if (!window.confirm(`Delete “${recipe.name}”? This cannot be undone.`)) {
+          return
+        }
+        confirmed = true
+      }
+      await handleDelete(recipe)
+    })
   }
 
   async function handleFormSubmit (payload: RecipeCreate) {
@@ -135,6 +149,7 @@ function RecipesPage () {
       }
       setFormMode(null)
     } catch (err) {
+      if (err instanceof ApiError && err.status === 403) throw err
       setFormError(
         err instanceof Error ? err.message : 'Could not save recipe'
       )
@@ -154,6 +169,7 @@ function RecipesPage () {
       setExpandedIds((prev) => new Set(prev).add(imported.id))
       setImportOpen(false)
     } catch (err) {
+      if (err instanceof ApiError && err.status === 403) throw err
       setImportError(
         err instanceof Error ? err.message : 'Could not import recipe'
       )
@@ -175,6 +191,7 @@ function RecipesPage () {
       })
       setTags((prev) => [...prev, created])
     } catch (err) {
+      if (err instanceof ApiError && err.status === 403) throw err
       setTagError(err instanceof Error ? err.message : 'Could not create tag')
     } finally {
       setTagBusy(false)
@@ -196,6 +213,7 @@ function RecipesPage () {
         }))
       )
     } catch (err) {
+      if (err instanceof ApiError && err.status === 403) throw err
       setTagError(err instanceof Error ? err.message : 'Could not update tag')
     } finally {
       setTagBusy(false)
@@ -215,6 +233,7 @@ function RecipesPage () {
         }))
       )
     } catch (err) {
+      if (err instanceof ApiError && err.status === 403) throw err
       setTagError(err instanceof Error ? err.message : 'Could not rename tag')
     } finally {
       setTagBusy(false)
@@ -234,6 +253,7 @@ function RecipesPage () {
         }))
       )
     } catch (err) {
+      if (err instanceof ApiError && err.status === 403) throw err
       setTagError(err instanceof Error ? err.message : 'Could not delete tag')
     } finally {
       setTagBusy(false)
@@ -251,6 +271,7 @@ function RecipesPage () {
       setSlotRecipe(null)
       void navigate(`/?week=${slotWeekStart}`)
     } catch (err) {
+      if (err instanceof ApiError && err.status === 403) throw err
       setSlotError(
         err instanceof Error ? err.message : 'Could not slot recipe'
       )
@@ -270,39 +291,55 @@ function RecipesPage () {
             Browse, rate, and edit meals for the household.
           </p>
         </div>
-        <div className='flex flex-wrap gap-2'>
-          <button
-            type='button'
-            onClick={() => {
-              setImportError(null)
-              setImportOpen(true)
-            }}
-            className='rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)] transition hover:bg-[var(--color-sage-muted)]/50'
-          >
-            Import from URL
-          </button>
-          <button
-            type='button'
-            onClick={() => {
-              setFormError(null)
-              setFormMode({ type: 'create' })
-            }}
-            className='rounded-lg bg-[var(--color-sage-mid)] px-4 py-2 text-sm font-semibold text-[var(--color-on-sage)] transition hover:bg-[var(--color-sage-deep)]'
-          >
-            New recipe
-          </button>
-        </div>
+        {authenticated && (
+          <div className='flex flex-wrap gap-2'>
+            <button
+              type='button'
+              onClick={() => {
+                requireAdmin(() => {
+                  setImportError(null)
+                  setImportOpen(true)
+                })
+              }}
+              className='rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)] transition hover:bg-[var(--color-sage-muted)]/50'
+            >
+              Import from URL
+            </button>
+            <button
+              type='button'
+              onClick={() => {
+                requireAdmin(() => {
+                  setFormError(null)
+                  setFormMode({ type: 'create' })
+                })
+              }}
+              className='rounded-lg bg-[var(--color-sage-mid)] px-4 py-2 text-sm font-semibold text-[var(--color-on-sage)] transition hover:bg-[var(--color-sage-deep)]'
+            >
+              New recipe
+            </button>
+          </div>
+        )}
       </div>
 
-      <TagManager
-        tags={tags}
-        busy={tagBusy}
-        error={tagError}
-        onCreate={handleCreateTag}
-        onToggleBoardVisible={handleToggleBoardVisible}
-        onRename={handleRenameTag}
-        onDelete={handleDeleteTag}
-      />
+      {authenticated && (
+        <TagManager
+          tags={tags}
+          busy={tagBusy}
+          error={tagError}
+          onCreate={(...args) => {
+            requireAdmin(async () => await handleCreateTag(...args))
+          }}
+          onToggleBoardVisible={(...args) => {
+            requireAdmin(async () => await handleToggleBoardVisible(...args))
+          }}
+          onRename={(...args) => {
+            requireAdmin(async () => await handleRenameTag(...args))
+          }}
+          onDelete={(...args) => {
+            requireAdmin(async () => await handleDeleteTag(...args))
+          }}
+        />
+      )}
 
       {actionError && (
         <p
@@ -338,16 +375,20 @@ function RecipesPage () {
           <p className='mt-1 text-sm text-[var(--color-ink-muted)]'>
             Add your first meal to start building the catalog.
           </p>
-          <button
-            type='button'
-            onClick={() => {
-              setFormError(null)
-              setFormMode({ type: 'create' })
-            }}
-            className='mt-4 rounded-lg bg-[var(--color-sage-mid)] px-4 py-2 text-sm font-semibold text-[var(--color-on-sage)] transition hover:bg-[var(--color-sage-deep)]'
-          >
-            New recipe
-          </button>
+          {authenticated && (
+            <button
+              type='button'
+              onClick={() => {
+                requireAdmin(() => {
+                  setFormError(null)
+                  setFormMode({ type: 'create' })
+                })
+              }}
+              className='mt-4 rounded-lg bg-[var(--color-sage-mid)] px-4 py-2 text-sm font-semibold text-[var(--color-on-sage)] transition hover:bg-[var(--color-sage-deep)]'
+            >
+              New recipe
+            </button>
+          )}
         </div>
       )}
 
@@ -357,20 +398,25 @@ function RecipesPage () {
             <li key={recipe.id}>
               <RecipeCard
                 recipe={recipe}
+                showEditControls={authenticated}
                 expanded={expandedIds.has(recipe.id)}
                 ratingBusy={ratingBusyId === recipe.id}
                 deleteBusy={deleteBusyId === recipe.id}
                 onToggle={() => toggleExpanded(recipe.id)}
-                onRate={(rating) => void handleRate(recipe, rating)}
+                onRate={(rating) => requireAdmin(async () => await handleRate(recipe, rating))}
                 onEdit={() => {
-                  setFormError(null)
-                  setFormMode({ type: 'edit', recipe })
+                  requireAdmin(() => {
+                    setFormError(null)
+                    setFormMode({ type: 'edit', recipe })
+                  })
                 }}
-                onDelete={() => void handleDelete(recipe)}
+                onDelete={() => requestDelete(recipe)}
                 onSlotIntoNight={() => {
-                  setSlotError(null)
-                  setSlotWeekStart(boardWeekOrCurrent())
-                  setSlotRecipe(recipe)
+                  requireAdmin(() => {
+                    setSlotError(null)
+                    setSlotWeekStart(boardWeekOrCurrent())
+                    setSlotRecipe(recipe)
+                  })
                 }}
               />
             </li>
@@ -385,7 +431,7 @@ function RecipesPage () {
           tags={tags}
           submitting={formSubmitting}
           error={formError}
-          onSubmit={(payload) => void handleFormSubmit(payload)}
+          onSubmit={(payload) => requireAdmin(async () => await handleFormSubmit(payload))}
           onCancel={() => setFormMode(null)}
         />
       )}
@@ -394,7 +440,7 @@ function RecipesPage () {
         <RecipeImportDialog
           submitting={importSubmitting}
           error={importError}
-          onSubmit={(url) => void handleImport(url)}
+          onSubmit={(url) => requireAdmin(async () => await handleImport(url))}
           onCancel={() => {
             if (importSubmitting) return
             setImportOpen(false)
@@ -409,7 +455,7 @@ function RecipesPage () {
           weekStart={slotWeekStart}
           submitting={slotSubmitting}
           error={slotError}
-          onSelect={(day) => void handleSlotDay(day)}
+          onSelect={(day) => requireAdmin(async () => await handleSlotDay(day))}
           onCancel={() => {
             if (slotSubmitting) return
             setSlotRecipe(null)

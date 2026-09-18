@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
     cors_origins: List[str] = ["http://localhost:5173"]
     household_pin: str = "1234"
+    admin_password: str = "admin"
     session_secret: str
     session_https_only: bool = False
 

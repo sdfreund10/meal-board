@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { api } from '../api/client'
+import { ApiError, api } from '../api/client'
+import { useAuth } from '../auth/AuthContext'
 import DayCard from '../components/board/DayCard'
 import RecipePickerDialog from '../components/board/RecipePickerDialog'
 import WeekStepper from '../components/board/WeekStepper'
@@ -27,6 +28,7 @@ function emptyBoard (weekStart: string): WeekBoard {
 }
 
 function WeeklyBoardPage () {
+  const { requireAdmin } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const weekStart = useMemo(
     () => resolveWeekStart(searchParams.get('week')),
@@ -132,6 +134,7 @@ function WeeklyBoardPage () {
       setBoard(next)
       setPickerDay(null)
     } catch (err) {
+      if (err instanceof ApiError && err.status === 403) throw err
       setAssignError(
         err instanceof Error ? err.message : 'Could not add recipe'
       )
@@ -149,6 +152,7 @@ function WeeklyBoardPage () {
       const next = await api.removeDayRecipe(weekStart, day, recipeId)
       setBoard(next)
     } catch (err) {
+      if (err instanceof ApiError && err.status === 403) throw err
       setActionError(
         err instanceof Error ? err.message : 'Could not remove recipe'
       )
@@ -165,6 +169,7 @@ function WeeklyBoardPage () {
       const next = await api.clearDay(weekStart, day)
       setBoard(next)
     } catch (err) {
+      if (err instanceof ApiError && err.status === 403) throw err
       setActionError(
         err instanceof Error ? err.message : 'Could not clear day'
       )
@@ -226,9 +231,10 @@ function WeeklyBoardPage () {
                   dayOfWeek={day}
                   recipes={slot.recipes}
                   busy={busyDay === day}
-                  onAdd={() => openPicker(day)}
-                  onRemove={(recipeId) => void handleRemove(day, recipeId)}
-                  onClear={() => void handleClear(day)}
+                  onAdd={() => requireAdmin(() => openPicker(day))}
+                  onRemove={(recipeId) =>
+                    requireAdmin(async () => await handleRemove(day, recipeId))}
+                  onClear={() => requireAdmin(async () => await handleClear(day))}
                 />
               )
             })}
@@ -253,7 +259,7 @@ function WeeklyBoardPage () {
           submitting={assignBusy}
           assignError={assignError}
           dayLabel={dayLabel(pickerDay)}
-          onSelect={(id) => void handleAdd(id)}
+          onSelect={(id) => requireAdmin(async () => await handleAdd(id))}
           onCancel={closePicker}
           onRetryLoad={() => void loadRecipesForPicker()}
         />

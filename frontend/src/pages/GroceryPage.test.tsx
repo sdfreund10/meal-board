@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
+import { renderWithAuth } from '../test/renderWithAuth'
 import type { GroceryItem } from '../types/week'
 import GroceryPage from './GroceryPage'
 
@@ -13,12 +14,12 @@ const sampleItems: GroceryItem[] = [
 ]
 
 function renderGrocery (weekStart = '2026-09-07') {
-  return render(
-    <MemoryRouter initialEntries={[`/weeks/${weekStart}/grocery`]}>
-      <Routes>
-        <Route path='/weeks/:weekStart/grocery' element={<GroceryPage />} />
-      </Routes>
-    </MemoryRouter>
+  return renderWithAuth(
+    <Routes>
+      <Route path='/weeks/:weekStart/grocery' element={<GroceryPage />} />
+    </Routes>,
+    {},
+    [`/weeks/${weekStart}/grocery`]
   )
 }
 

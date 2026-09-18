@@ -7,6 +7,7 @@ import TagBadge from './TagBadge'
 interface RecipeCardProps {
   recipe: Recipe
   expanded: boolean
+  showEditControls: boolean
   ratingBusy?: boolean
   deleteBusy?: boolean
   onToggle: () => void
@@ -19,6 +20,7 @@ interface RecipeCardProps {
 function RecipeCard ({
   recipe,
   expanded,
+  showEditControls,
   ratingBusy,
   deleteBusy,
   onToggle,
@@ -53,11 +55,28 @@ function RecipeCard ({
           </div>
         </div>
 
-        <RatingButtons
-          rating={recipe.rating}
-          disabled={ratingBusy}
-          onChange={onRate}
-        />
+        {showEditControls
+          ? (
+            <RatingButtons
+              rating={recipe.rating}
+              disabled={ratingBusy}
+              onChange={onRate}
+            />
+            )
+          : recipe.rating != null
+            ? (
+              <span
+                className='text-sm text-[var(--color-ink-muted)]'
+                aria-label={
+                  recipe.rating === 'up'
+                    ? 'Rated thumbs up'
+                    : 'Rated thumbs down'
+                }
+              >
+                {recipe.rating === 'up' ? '👍' : '👎'}
+              </span>
+              )
+            : null}
 
         <button
           type='button'
@@ -160,30 +179,32 @@ function RecipeCard ({
               </p>
             )}
 
-            <div className='flex flex-wrap items-center gap-2 pt-1'>
-              <button
-                type='button'
-                onClick={onEdit}
-                className='rounded-lg bg-[var(--color-sage-mid)] px-3 py-1.5 text-sm font-medium text-[var(--color-on-sage)] transition hover:bg-[var(--color-sage-deep)]'
-              >
-                Edit
-              </button>
-              <button
-                type='button'
-                onClick={onDelete}
-                disabled={deleteBusy}
-                className='rounded-lg px-3 py-1.5 text-sm font-medium text-[var(--color-danger)] transition hover:bg-[var(--color-danger-bg)] disabled:opacity-60'
-              >
-                {deleteBusy ? 'Deleting…' : 'Delete'}
-              </button>
-              <button
-                type='button'
-                onClick={onSlotIntoNight}
-                className='rounded-lg px-3 py-1.5 text-sm font-medium text-[var(--color-sage-mid)] transition hover:bg-[var(--color-sage-muted)]/70'
-              >
-                Slot into night…
-              </button>
-            </div>
+            {showEditControls && (
+              <div className='flex flex-wrap items-center gap-2 pt-1'>
+                <button
+                  type='button'
+                  onClick={onEdit}
+                  className='rounded-lg bg-[var(--color-sage-mid)] px-3 py-1.5 text-sm font-medium text-[var(--color-on-sage)] transition hover:bg-[var(--color-sage-deep)]'
+                >
+                  Edit
+                </button>
+                <button
+                  type='button'
+                  onClick={onDelete}
+                  disabled={deleteBusy}
+                  className='rounded-lg px-3 py-1.5 text-sm font-medium text-[var(--color-danger)] transition hover:bg-[var(--color-danger-bg)] disabled:opacity-60'
+                >
+                  {deleteBusy ? 'Deleting…' : 'Delete'}
+                </button>
+                <button
+                  type='button'
+                  onClick={onSlotIntoNight}
+                  className='rounded-lg px-3 py-1.5 text-sm font-medium text-[var(--color-sage-mid)] transition hover:bg-[var(--color-sage-muted)]/70'
+                >
+                  Slot into night…
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

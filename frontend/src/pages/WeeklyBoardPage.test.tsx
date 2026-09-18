@@ -1,9 +1,10 @@
 import { StrictMode } from 'react'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
+import type { AuthContextValue } from '../auth/AuthContext'
+import { renderWithAuth } from '../test/renderWithAuth'
 import type { Recipe } from '../types/recipe'
 import type { WeekBoard } from '../types/week'
 import { mondayOf, toISODate } from '../lib/weekDate'
@@ -64,12 +65,11 @@ function boardWithRecipes (
   }
 }
 
-function renderBoard (initialEntry = '/') {
-  return render(
-    <MemoryRouter initialEntries={[initialEntry]}>
-      <WeeklyBoardPage />
-    </MemoryRouter>
-  )
+function renderBoard (
+  initialEntry = '/',
+  authOverrides: Partial<AuthContextValue> = {}
+) {
+  return renderWithAuth(<WeeklyBoardPage />, authOverrides, [initialEntry])
 }
 
 describe('WeeklyBoardPage', () => {
@@ -104,6 +104,21 @@ describe('WeeklyBoardPage', () => {
     await screen.findByRole('article', { name: 'Monday' })
     expect(api.getWeek).toHaveBeenCalledWith('2026-09-07', expect.any(AbortSignal))
     expect(screen.getByRole('heading', { name: /Week of Sep 7/i })).toBeInTheDocument()
+  })
+
+  it('routes board editing intent through the admin gate', async () => {
+    const user = userEvent.setup()
+    const requireAdmin = vi.fn()
+    renderBoard(`/?week=${currentMonday}`, {
+      adminAccess: false,
+      requireAdmin
+    })
+
+    const monday = await screen.findByRole('article', { name: 'Monday' })
+    await user.click(within(monday).getByRole('button', { name: /\+ Add/i }))
+
+    expect(requireAdmin).toHaveBeenCalledOnce()
+    expect(api.listRecipes).not.toHaveBeenCalled()
   })
 
   it('navigates to previous and next weeks', async () => {
@@ -235,12 +250,12 @@ describe('WeeklyBoardPage', () => {
   it('keeps the recipe picker open under StrictMode', async () => {
     const user = userEvent.setup()
 
-    render(
+    renderWithAuth(
       <StrictMode>
-        <MemoryRouter initialEntries={[`/?week=${currentMonday}`]}>
-          <WeeklyBoardPage />
-        </MemoryRouter>
-      </StrictMode>
+        <WeeklyBoardPage />
+      </StrictMode>,
+      {},
+      [`/?week=${currentMonday}`]
     )
 
     const monday = await screen.findByRole('article', { name: 'Monday' })

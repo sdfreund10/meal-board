@@ -28,9 +28,12 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix=settings.api_prefix)
-app.include_router(recipes.router, prefix=settings.api_prefix)
+app.include_router(recipes.public_router, prefix=settings.api_prefix)
+app.include_router(recipes.admin_router, prefix=settings.api_prefix)
 app.include_router(tags.router, prefix=settings.api_prefix)
+app.include_router(tags.admin_router, prefix=settings.api_prefix)
 app.include_router(weeks.router, prefix=settings.api_prefix)
+app.include_router(weeks.admin_router, prefix=settings.api_prefix)
 
 
 @app.get("/health")

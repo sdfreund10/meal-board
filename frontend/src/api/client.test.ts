@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { api } from './client'
+import { ApiError, api, setAuthErrorHandler } from './client'
 
 function mockJsonResponse (body: unknown, status = 200) {
   return {
@@ -12,6 +12,7 @@ function mockJsonResponse (body: unknown, status = 200) {
 
 describe('api client', () => {
   afterEach(() => {
+    setAuthErrorHandler(null)
     vi.restoreAllMocks()
   })
 
@@ -63,6 +64,22 @@ describe('api client', () => {
     const init = fetchMock.mock.calls[0][1] as RequestInit
     const headers = new Headers(init.headers)
     expect(headers.get('Content-Type')).toBe('application/json')
+  })
+
+  it('elevates a session with an admin password', async () => {
+    const status = { authenticated: true, admin_access: true }
+    const fetchMock = vi.fn().mockResolvedValue(mockJsonResponse(status))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(api.elevate({ password: 'secret' })).resolves.toEqual(status)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auth/elevate',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify({ password: 'secret' })
+      })
+    )
   })
 
   it('lists recipes', async () => {
@@ -120,6 +137,29 @@ describe('api client', () => {
     )
 
     await expect(api.login({ pin: '0000' })).rejects.toThrow('Invalid PIN')
+  })
+
+  it('throws ApiError with status and notifies the auth handler', async () => {
+    const authErrorHandler = vi.fn()
+    setAuthErrorHandler(authErrorHandler)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        text: async () => JSON.stringify({ detail: 'Admin access required' })
+      })
+    )
+
+    const promise = api.deleteRecipe(3)
+    await expect(promise).rejects.toEqual(
+      expect.objectContaining({
+        message: 'Admin access required',
+        status: 403
+      })
+    )
+    await expect(promise).rejects.toBeInstanceOf(ApiError)
+    expect(authErrorHandler).toHaveBeenCalledWith(403)
   })
 
   it('handles 204 delete responses', async () => {

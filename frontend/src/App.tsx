@@ -1,56 +1,18 @@
-import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { Route, Routes } from 'react-router-dom'
-import { api } from './api/client'
+import { useAuth } from './auth/AuthContext'
+import AuthProvider from './auth/AuthProvider'
 import AppShell from './components/AppShell'
 import PinGate from './components/PinGate'
 import GroceryPage from './pages/GroceryPage'
 import RecipesPage from './pages/RecipesPage'
 import WeeklyBoardPage from './pages/WeeklyBoardPage'
 
-type AuthState = 'loading' | 'unauthenticated' | 'authenticated'
-
-function App () {
-  const [authState, setAuthState] = useState<AuthState>('loading')
-  const [loggingOut, setLoggingOut] = useState(false)
-  const [sessionError, setSessionError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-
-    void (async () => {
-      try {
-        const me = await api.authMe()
-        if (cancelled) return
-        setAuthState(me.authenticated ? 'authenticated' : 'unauthenticated')
-      } catch (err) {
-        if (cancelled) return
-        setSessionError(
-          err instanceof Error ? err.message : 'Could not check session'
-        )
-        setAuthState('unauthenticated')
-      }
-    })()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  async function handleLogout () {
-    setLoggingOut(true)
-    try {
-      await api.logout()
-    } catch {
-      // Still lock the UI if logout request fails (cookie may already be gone).
-    } finally {
-      setLoggingOut(false)
-      setAuthState('unauthenticated')
-    }
-  }
-
-  if (authState === 'loading') {
+function ProtectedContent ({ children }: { children: ReactNode }) {
+  const { phase, authenticated } = useAuth()
+  if (phase === 'loading') {
     return (
-      <div className='flex min-h-screen items-center justify-center px-4'>
+      <div className='flex min-h-[60vh] items-center justify-center px-4'>
         <p className='text-sm text-[var(--color-ink-muted)]'>
           Checking session…
         </p>
@@ -58,40 +20,31 @@ function App () {
     )
   }
 
-  if (authState === 'unauthenticated') {
-    return (
-      <>
-        {sessionError && (
-          <p
-            role='alert'
-            className='bg-[var(--color-danger-bg)] px-4 py-2 text-center text-sm text-[var(--color-danger)]'
-          >
-            {sessionError}
-          </p>
-        )}
-        <PinGate
-          onAuthenticated={() => {
-            setSessionError(null)
-            setAuthState('authenticated')
-          }}
-        />
-      </>
-    )
-  }
+  if (!authenticated) return <PinGate />
+  return <>{children}</>
+}
 
+function AppRoutes () {
   return (
     <Routes>
-      <Route
-        element={
-          <AppShell
-            onLogout={() => void handleLogout()}
-            loggingOut={loggingOut}
-          />
-        }
-      >
-        <Route path='/' element={<WeeklyBoardPage />} />
+      <Route element={<AppShell />}>
+        <Route
+          path='/'
+          element={
+            <ProtectedContent>
+              <WeeklyBoardPage />
+            </ProtectedContent>
+          }
+        />
         <Route path='/recipes' element={<RecipesPage />} />
-        <Route path='/weeks/:weekStart/grocery' element={<GroceryPage />} />
+        <Route
+          path='/weeks/:weekStart/grocery'
+          element={
+            <ProtectedContent>
+              <GroceryPage />
+            </ProtectedContent>
+          }
+        />
         <Route
           path='*'
           element={
@@ -100,6 +53,14 @@ function App () {
         />
       </Route>
     </Routes>
+  )
+}
+
+function App () {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   )
 }
 

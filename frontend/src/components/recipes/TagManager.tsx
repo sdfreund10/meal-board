@@ -7,10 +7,10 @@ interface TagManagerProps {
   tags: Tag[]
   busy: boolean
   error: string | null
-  onCreate: (name: string, boardVisible: boolean) => Promise<void>
-  onToggleBoardVisible: (tag: Tag) => Promise<void>
-  onRename: (tag: Tag, name: string) => Promise<void>
-  onDelete: (tag: Tag) => Promise<void>
+  onCreate: (name: string, boardVisible: boolean) => void | Promise<void>
+  onToggleBoardVisible: (tag: Tag) => void | Promise<void>
+  onRename: (tag: Tag, name: string) => void | Promise<void>
+  onDelete: (tag: Tag) => void | Promise<void>
 }
 
 function TagManager ({

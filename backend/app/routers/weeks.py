@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.deps import require_session
+from app.deps import require_admin, require_session
 from app.models import DinnerSlot, Recipe
 from app.schemas import DinnerSlotAdd, DinnerSlotRead, GroceryItemRead, WeekBoardRead
 
@@ -15,6 +15,12 @@ router = APIRouter(
     prefix="/weeks",
     tags=["weeks"],
     dependencies=[Depends(require_session)],
+)
+
+admin_router = APIRouter(
+    prefix="/weeks",
+    tags=["weeks"],
+    dependencies=[Depends(require_session), Depends(require_admin)],
 )
 
 
@@ -117,7 +123,7 @@ def get_week(week_start: date, db: Session = Depends(get_db)) -> WeekBoardRead:
     return _build_week_board(db, week_start)
 
 
-@router.post(
+@admin_router.post(
     "/{week_start}/days/{day_of_week}/recipes",
     response_model=WeekBoardRead,
 )
@@ -177,7 +183,7 @@ def add_day_recipe(
     return _build_week_board(db, week_start)
 
 
-@router.delete(
+@admin_router.delete(
     "/{week_start}/days/{day_of_week}/recipes/{recipe_id}",
     response_model=WeekBoardRead,
 )
@@ -206,7 +212,7 @@ def remove_day_recipe(
     return _build_week_board(db, week_start)
 
 
-@router.delete(
+@admin_router.delete(
     "/{week_start}/days/{day_of_week}",
     response_model=WeekBoardRead,
 )

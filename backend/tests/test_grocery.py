@@ -37,10 +37,11 @@ def test_grocery_empty_week(auth_client: TestClient) -> None:
 
 def test_grocery_dedupes_with_side_by_side_quantities(
     auth_client: TestClient,
+    admin_client: TestClient
 ) -> None:
     week = "2026-09-07"
     tacos_id = _create_recipe(
-        auth_client,
+        admin_client,
         "Tacos",
         [
             {"name": "Onion", "quantity": "2"},
@@ -49,7 +50,7 @@ def test_grocery_dedupes_with_side_by_side_quantities(
         ],
     )
     soup_id = _create_recipe(
-        auth_client,
+        admin_client,
         "Onion Soup",
         [
             {"name": "onion", "quantity": "1"},
@@ -58,7 +59,7 @@ def test_grocery_dedupes_with_side_by_side_quantities(
         ],
     )
     rice_id = _create_recipe(
-        auth_client,
+        admin_client,
         "Rice",
         [
             {"name": "Rice", "quantity": "1 cup"},
@@ -68,21 +69,21 @@ def test_grocery_dedupes_with_side_by_side_quantities(
 
     # Mon: Tacos; Tue: Soup then Rice (multi-recipe day)
     assert (
-        auth_client.post(
+        admin_client.post(
             f"/api/weeks/{week}/days/0/recipes",
             json={"recipe_id": tacos_id},
         ).status_code
         == 200
     )
     assert (
-        auth_client.post(
+        admin_client.post(
             f"/api/weeks/{week}/days/1/recipes",
             json={"recipe_id": soup_id},
         ).status_code
         == 200
     )
     assert (
-        auth_client.post(
+        admin_client.post(
             f"/api/weeks/{week}/days/1/recipes",
             json={"recipe_id": rice_id},
         ).status_code

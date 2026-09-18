@@ -1,4 +1,4 @@
-import type { AuthLogin, AuthStatus } from '../types/auth'
+import type { AdminLogin, AuthLogin, AuthStatus } from '../types/auth'
 import type {
   Recipe,
   RecipeCreate,
@@ -10,6 +10,33 @@ import type { DinnerSlotAdd, GroceryItem, WeekBoard } from '../types/week'
 
 const DEFAULT_TIMEOUT_MS = 8_000
 const RECIPE_IMPORT_TIMEOUT_MS = 60_000
+
+export class ApiError extends Error {
+  status: number
+
+  constructor (message: string, status: number) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
+type AuthErrorHandler = (status: number) => void
+const authErrorHandlers = new Set<AuthErrorHandler>()
+let legacyAuthErrorHandler: AuthErrorHandler | null = null
+
+export function setAuthErrorHandler (
+  handler: AuthErrorHandler | null
+) {
+  legacyAuthErrorHandler = handler
+}
+
+export function subscribeToAuthErrors (handler: AuthErrorHandler) {
+  authErrorHandlers.add(handler)
+  return () => {
+    authErrorHandlers.delete(handler)
+  }
+}
 
 function parseErrorDetail (raw: string, status: number): string {
   if (!raw) return `Request failed (${status})`
@@ -37,7 +64,11 @@ async function request<T> (path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const detail = await response.text()
-    throw new Error(parseErrorDetail(detail, response.status))
+    if (response.status === 401 || response.status === 403) {
+      legacyAuthErrorHandler?.(response.status)
+      authErrorHandlers.forEach((handler) => handler(response.status))
+    }
+    throw new ApiError(parseErrorDetail(detail, response.status), response.status)
   }
 
   if (response.status === 204) {
@@ -54,6 +85,12 @@ export const api = {
 
   login: async (payload: AuthLogin) =>
     await request<AuthStatus>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }),
+
+  elevate: async (payload: AdminLogin) =>
+    await request<AuthStatus>('/api/auth/elevate', {
       method: 'POST',
       body: JSON.stringify(payload)
     }),
