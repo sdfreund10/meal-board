@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from fastapi import HTTPException, status
 from collections.abc import Generator
 
+from fastapi import HTTPException, status
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
