@@ -1,15 +1,15 @@
 import { StrictMode } from 'react'
 import {
   fireEvent,
-  render,
   screen,
   waitFor,
   within
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
+import { renderWithAuth } from '../test/renderWithAuth'
+import type { AuthContextValue } from '../auth/AuthContext'
 import type { Recipe } from '../types/recipe'
 import type { Tag } from '../types/tag'
 import RecipesPage from './RecipesPage'
@@ -38,8 +38,11 @@ const recipe: Recipe = {
   updated_at: '2026-01-01T00:00:00Z'
 }
 
-function renderPage (ui: React.ReactElement = <RecipesPage />) {
-  return render(<MemoryRouter>{ui}</MemoryRouter>)
+function renderPage (
+  ui: React.ReactElement = <RecipesPage />,
+  authOverrides: Partial<AuthContextValue> = {}
+) {
+  return renderWithAuth(ui, authOverrides)
 }
 
 describe('RecipesPage', () => {
@@ -59,6 +62,39 @@ describe('RecipesPage', () => {
     expect(screen.getByText('Loading recipes…')).toBeInTheDocument()
     expect(await screen.findByText('Tacos')).toBeInTheDocument()
     expect(screen.getByText('weeknight')).toBeInTheDocument()
+  })
+
+  it('renders a public read-only catalog without loading session-only tags', async () => {
+    const user = userEvent.setup()
+    renderPage(<RecipesPage />, {
+      authenticated: false,
+      adminAccess: false
+    })
+
+    await screen.findByText('Tacos')
+    expect(api.listTags).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'New recipe' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Import from URL' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Expand recipe' }))
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Thumbs up' })).not.toBeInTheDocument()
+  })
+
+  it('routes signed-in edit intent through the admin gate', async () => {
+    const user = userEvent.setup()
+    const requireAdmin = vi.fn()
+    renderPage(<RecipesPage />, {
+      adminAccess: false,
+      requireAdmin
+    })
+
+    await screen.findByText('Tacos')
+    await user.click(screen.getByRole('button', { name: 'New recipe' }))
+
+    expect(requireAdmin).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('shows empty state when there are no recipes', async () => {

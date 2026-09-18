@@ -1,12 +1,9 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { api } from '../api/client'
+import { useAuth } from '../auth/AuthContext'
 
-interface PinGateProps {
-  onAuthenticated: () => void
-}
-
-function PinGate ({ onAuthenticated }: PinGateProps) {
+function PinGate () {
+  const { login } = useAuth()
   const [pin, setPin] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -18,12 +15,10 @@ function PinGate ({ onAuthenticated }: PinGateProps) {
     setSubmitting(true)
     setError(null)
     try {
-      const result = await api.login({ pin: pin.trim() })
-      if (!result.authenticated) {
+      const authenticated = await login(pin.trim())
+      if (!authenticated) {
         setError('Could not sign in. Check your PIN and try again.')
-        return
       }
-      onAuthenticated()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid PIN')
     } finally {
@@ -32,7 +27,7 @@ function PinGate ({ onAuthenticated }: PinGateProps) {
   }
 
   return (
-    <div className='flex min-h-screen items-center justify-center px-4'>
+    <div className='flex min-h-[60vh] items-center justify-center px-4'>
       <div className='w-full max-w-sm'>
         <p className='text-sm font-medium tracking-wide text-[var(--color-sage-mid)]'>
           Mealboard

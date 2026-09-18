@@ -2,7 +2,7 @@
 
 Household web app for **family dinner planning** and a shared **recipe catalog**. Plan a Mon–Sun board, slot multiple recipes per night, and generate a grocery inventory for the week.
 
-**Stack:** FastAPI + SQLAlchemy + PostgreSQL · React (Vite) + Tailwind CSS · PIN session auth (httpOnly cookie)
+**Stack:** FastAPI + SQLAlchemy + PostgreSQL · React (Vite) + Tailwind CSS · PIN and elevated admin sessions (httpOnly cookie)
 
 ## Prerequisites
 
@@ -18,7 +18,7 @@ Household web app for **family dinner planning** and a shared **recipe catalog**
 cd backend
 uv sync
 cp .env.example .env
-# Set HOUSEHOLD_PIN and a SESSION_SECRET (≥32 random characters)
+# Set HOUSEHOLD_PIN, ADMIN_PASSWORD, and a SESSION_SECRET (≥32 random characters)
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload --port 8000
 ```
@@ -33,14 +33,14 @@ npm install
 npm run dev
 ```
 
-App: [http://localhost:5173](http://localhost:5173) (proxies `/api` and `/health` to the backend). Enter the household PIN from `.env` to unlock the app.
+App: [http://localhost:5173](http://localhost:5173) (proxies `/api` and `/health` to the backend). The recipe catalog is public. Enter the household PIN to open the board and grocery inventory; editing prompts for the admin password.
 
 ## What v1 includes
 
 | Area | Behavior |
 |------|----------|
-| **Auth** | Shared PIN; session cookie remembered for the browser |
-| **Recipes** | Catalog with ingredients, steps, tags, thumbs rating, leftovers flag |
+| **Auth** | Shared PIN session for household pages; 24-hour admin elevation for mutations |
+| **Recipes** | Public read-only catalog; admins can manage ingredients, steps, tags, ratings, and leftovers |
 | **Tags** | Shared list; `board_visible` tags show on the weekly board |
 | **Weekly board** | Mon–Sun stepper; multiple recipes per day; assign / remove / clear |
 | **Grocery** | Week inventory: ingredients deduped by name, quantities listed side-by-side |
