@@ -27,7 +27,9 @@ def test_recipe_mutations_require_admin_access(auth_client: TestClient) -> None:
     )
 
 
-def test_recipe_crud_with_ingredients_steps_tags(auth_client: TestClient, admin_client: TestClient) -> None:
+def test_recipe_crud_with_ingredients_steps_tags(
+    auth_client: TestClient, admin_client: TestClient
+) -> None:
     tag = admin_client.post(
         "/api/tags",
         json={"name": "mexican", "board_visible": True},

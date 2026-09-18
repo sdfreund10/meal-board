@@ -20,7 +20,7 @@ def test_week_board_requires_auth(client: TestClient) -> None:
 
 def test_week_board_mutations_require_admin(auth_client: TestClient) -> None:
     auth_response = auth_client.post(
-        f"/api/weeks/2026-09-07/days/1/recipes",
+        "/api/weeks/2026-09-07/days/1/recipes",
         json={"recipe_id": "123"},
     )
     assert auth_response.status_code == 403
@@ -171,7 +171,9 @@ def test_clear_day_removes_all_slots(admin_client: TestClient) -> None:
     assert board.json()["days"][4]["recipes"] == []
 
 
-def test_get_orders_recipes_by_position(auth_client: TestClient, admin_client: TestClient) -> None:
+def test_get_orders_recipes_by_position(
+    auth_client: TestClient, admin_client: TestClient
+) -> None:
     first_id = _create_recipe(admin_client, "First")
     second_id = _create_recipe(admin_client, "Second")
     third_id = _create_recipe(admin_client, "Third")

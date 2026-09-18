@@ -1,7 +1,4 @@
-from unittest.mock import MagicMock, patch
 
-import requests
-from app.models import Recipe, RecipeIngredient, RecipeStep
 from fastapi.testclient import TestClient
 
 

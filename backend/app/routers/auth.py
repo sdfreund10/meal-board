@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from app.auth_rate_limit import login_rate_limiter
 from app.config import settings
 from app.deps import has_admin_access, is_authenticated, require_session
-from app.schemas import AuthLogin, AdminLogin, AuthStatus
+from app.schemas import AdminLogin, AuthLogin, AuthStatus
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
