@@ -1,15 +1,12 @@
 import json
-import os
 
 import requests
 from bs4 import BeautifulSoup
-from dotenv import load_dotenv
 from markdownify import markdownify as md
 from openrouter import OpenRouter
 
+from app.config import settings
 from app.models.recipe import Recipe, RecipeIngredient, RecipeStep
-
-load_dotenv()
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" # noqa: E501
 HEADERS = {
@@ -79,7 +76,7 @@ RESPONSE_FORMAT = {
 #   Last evaluated 2026-09-15
 def _llm_extract(markdown: str, model="google/gemini-2.5-flash-lite") -> dict:
     with OpenRouter(
-        api_key=os.getenv("OPENROUTER_API_KEY", ""),
+        api_key=settings.openrouter_api_key,
     ) as open_router:
         res = open_router.chat.send(
             model=model,

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Generator
 
-from sqlalchemy import create_engine
+from fastapi import HTTPException, status
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import settings
@@ -21,3 +22,14 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+def healthcheck() -> dict:
+    try:
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
+            return {"status": "ok"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database is not reachable",
+        ) from e

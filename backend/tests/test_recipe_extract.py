@@ -44,7 +44,7 @@ def test_parse_html_strips_noise_and_keeps_body_text() -> None:
     assert "food.jpg" not in markdown
 
 
-@patch.dict("os.environ", {"OPENROUTER_API_KEY": "test-key"}, clear=False)
+@patch("app.config.settings.openrouter_api_key", "test-key")
 @patch("app.services.recipe_extract.OpenRouter")
 @patch("app.services.recipe_extract._fetch_html", return_value=SAMPLE_HTML)
 def test_extract_recipe_calls_openrouter(
