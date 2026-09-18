@@ -23,6 +23,7 @@ dependencies = [
 dev = [
     "httpx==0.28.1",
     "pytest==8.3.4",
+    "pytest-env==1.1.5",
     "ruff==0.8.4",
 ]
 
@@ -45,6 +46,7 @@ ignore = ["UP006", "UP007", "UP035"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+env = ["APP_ENV=test"]
 filterwarnings = [
     "ignore::DeprecationWarning",
 ]

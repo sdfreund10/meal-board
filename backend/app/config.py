@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.app_env == AppEnv.production
 
+    def is_test(self) -> bool:
+        return self.app_env == AppEnv.test
+
     @field_validator("session_secret")
     @classmethod
     def session_secret_must_be_strong(cls, value: str) -> str:
@@ -58,12 +61,11 @@ class Settings(BaseSettings):
             raise ValueError(f"Invalid app environment: {value}")
         return AppEnv(value)
 
-    @field_validator("openrouter_api_key")
-    @classmethod
-    def valid_openrouter_api_key(cls, value: str) -> str:
-        if not value:
+    @model_validator(mode="after")
+    def valid_openrouter_api_key(self) -> str:
+        if not self.openrouter_api_key and not self.is_test():
             raise ValueError("OPENROUTER_API_KEY is required")
-        return value
+        return self
 
     @model_validator(mode="after")
     def validate_production(self) -> Settings:

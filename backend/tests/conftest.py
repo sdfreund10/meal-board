@@ -1,6 +1,7 @@
 import os
 
 # Must be set before app.config.settings is imported.
+os.environ["APP_ENV"] = "test"
 os.environ.setdefault("HOUSEHOLD_PIN", "1234")
 os.environ.setdefault(
     "SESSION_SECRET",
