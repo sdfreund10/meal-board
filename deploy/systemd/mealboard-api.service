@@ -1,7 +1,6 @@
 [Unit]
 Description=Mealboard API
 After=network.target postgresql.service
-Wants=postgresql.service
 
 [Service]
 Type=simple
@@ -11,17 +10,11 @@ WorkingDirectory=/opt/mealboard/backend
 EnvironmentFile=-/opt/mealboard/backend/.env
 ExecStart=/opt/mealboard/backend/.venv/bin/uvicorn app.main:app \
   --host 127.0.0.1 \
-  --port 8000 \
+  --port 8001 \
   --proxy-headers \
   --forwarded-allow-ips=127.0.0.1
 Restart=on-failure
 RestartSec=5
-
-# Harden without blocking loopback proxy or local Postgres.
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ProtectHome=true
 
 [Install]
 WantedBy=multi-user.target
