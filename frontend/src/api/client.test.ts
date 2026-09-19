@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, api, setAuthErrorHandler } from './client'
+import { ApiError, api, resolveApiUrl, setAuthErrorHandler } from './client'
 
 function mockJsonResponse (body: unknown, status = 200) {
   return {
@@ -9,6 +9,23 @@ function mockJsonResponse (body: unknown, status = 200) {
     text: async () => JSON.stringify(body)
   }
 }
+
+describe('resolveApiUrl', () => {
+  it('returns relative paths when base is unset', () => {
+    expect(resolveApiUrl('/health')).toBe('/health')
+    expect(resolveApiUrl('/api/auth/me', undefined)).toBe('/api/auth/me')
+    expect(resolveApiUrl('/api/auth/me', '')).toBe('/api/auth/me')
+  })
+
+  it('prefixes an absolute API base and strips a trailing slash', () => {
+    expect(
+      resolveApiUrl('/health', 'https://api.meals.sfreund.tools')
+    ).toBe('https://api.meals.sfreund.tools/health')
+    expect(
+      resolveApiUrl('/api/recipes', 'https://api.meals.sfreund.tools/')
+    ).toBe('https://api.meals.sfreund.tools/api/recipes')
+  })
+})
 
 describe('api client', () => {
   afterEach(() => {

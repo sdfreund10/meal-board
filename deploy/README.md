@@ -7,7 +7,9 @@ This guide covers the **API droplet** only: nginx terminates TLS and reverse-pro
   backend/          # FastAPI app, .venv, .env, alembic
 ```
 
-The React SPA is hosted separately (CDN + load balancer) and has its own deploy path. Put its public HTTPS origin in `CORS_ORIGINS` (e.g. `https://meals.sfreund.tools`). Do not serve the SPA or run certbot for it on this box.
+The React SPA is hosted separately (CDN + load balancer / Cloudflare Pages) and has its own deploy path. Put its public HTTPS origin in `CORS_ORIGINS` (e.g. `https://meals.sfreund.tools`). Do not serve the SPA or run certbot for it on this box.
+
+Pages build needs `VITE_API_BASE_URL=https://api.meals.sfreund.tools` (see [`frontend/README.md`](../frontend/README.md)).
 
 | Role | Host | Where |
 | --- | --- | --- |

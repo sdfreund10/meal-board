@@ -11,6 +11,15 @@ import type { DinnerSlotAdd, GroceryItem, WeekBoard } from '../types/week'
 const DEFAULT_TIMEOUT_MS = 8_000
 const RECIPE_IMPORT_TIMEOUT_MS = 60_000
 
+/** Empty in local dev (Vite proxy). Set VITE_API_BASE_URL for production CDN builds. */
+export function resolveApiUrl (
+  path: string,
+  base: string | undefined = import.meta.env.VITE_API_BASE_URL
+): string {
+  const normalized = (base ?? '').replace(/\/$/, '')
+  return `${normalized}${path}`
+}
+
 export class ApiError extends Error {
   status: number
 
@@ -55,7 +64,7 @@ async function request<T> (path: string, init?: RequestInit): Promise<T> {
     headers.set('Content-Type', 'application/json')
   }
 
-  const response = await fetch(path, {
+  const response = await fetch(resolveApiUrl(path), {
     ...init,
     credentials: 'include',
     signal: init?.signal ?? AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
